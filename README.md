@@ -1,6 +1,6 @@
-# gmfs-self-order
+# Perancangan dan Implementasi Sistem Self-Order Kiosk dengan Arsitektur Multi-Tenant serta Penanganan Pembayaran Idempoten
 
-Central self-order kiosk MVP for a multi-tenant food court.
+MVP kiosk self-order terpusat untuk food court multi-tenant: pelanggan bisa memesan dari beberapa tenant dalam satu keranjang dan membayar sekali, lalu checkout dipecah menjadi pesanan per tenant dengan pembayaran yang idempoten.
 
 ## Repository Structure
 - `/docs/PRD.md` — product requirements and business rules
