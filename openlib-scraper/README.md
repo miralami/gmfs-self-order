@@ -42,21 +42,51 @@ openlib-download/
 
 Kalau script dihentikan di tengah jalan, jalankan lagi — dokumen yang sudah lengkap otomatis dilewati (resume).
 
-## Konfigurasi (opsional, lewat environment variable)
+## Pause & lanjut di urutan tertentu
 
-| Variabel | Default | Fungsi |
-|---|---|---|
-| `OPENLIB_PUBLISHER` | `Kampus Jakarta` | nilai filter Penerbit |
-| `OPENLIB_OUT` | `...\TUGAS AKHIR\openlib-download` | folder output |
-| `OPENLIB_MAX_PAGES` | `0` (semua) | batasi jumlah halaman listing |
-| `OPENLIB_MAX_ITEMS` | `0` (semua) | batasi jumlah dokumen |
-| `OPENLIB_DELAY_MS` | `400` | jeda antar request (biar sopan) |
-
-Contoh uji coba 1 halaman:
+Urutan dokumen **disimpan permanen** di `_order.json` (dibuat dari hasil crawl pertama), jadi nomor urut tidak berubah antar-run.
 
 ```powershell
-$env:OPENLIB_MAX_PAGES=1; npm run start
+# Mulai dari urutan 51 sampai 100
+npm start -- --from 51 --to 100
+
+# Lanjut dari urutan 101 sampai habis
+npm start -- --from 101
+
+# Proses 20 item mulai urutan 51
+npm start -- --from 51 --items 20
 ```
+
+**Pause:** tekan `Ctrl+C` sekali. Script menyelesaikan item yang sedang berjalan, menyimpan manifest, lalu menampilkan nomor lanjutannya:
+
+```
+[PAUSE] Berhenti di urutan 73 dari 297.
+[PAUSE] Lanjut nanti dengan perintah:
+        npm start -- --from 74
+```
+
+**Cek posisi tanpa mengunduh:** angka urutan ada di kolom `No` pada `_index.md`, dan total ada di `_order.json`.
+
+**Kalau daftar di situs berubah** (ada koleksi baru), crawl ulang urutannya:
+
+```powershell
+npm start -- --refresh --from 1
+```
+
+## Opsi CLI
+
+| Argumen | Default | Fungsi |
+|---|---|---|
+| `--from N` | `1` | mulai dari urutan ke-N (1-based) |
+| `--to N` | akhir | berhenti di urutan ke-N |
+| `--items N` | semua | batasi jumlah item yang diproses |
+| `--pages N` | semua | batasi halaman listing saat crawl |
+| `--publisher "..."` | `Kampus Jakarta` | nilai filter Penerbit |
+| `--out "D:\path"` | folder OneDrive | folder output |
+| `--delay 400` | `400` | jeda antar request (ms) |
+| `--refresh` | – | crawl ulang daftar, abaikan `_order.json` |
+
+Semua opsi juga bisa lewat environment variable (`OPENLIB_FROM`, `OPENLIB_TO`, `OPENLIB_MAX_ITEMS`, `OPENLIB_MAX_PAGES`, `OPENLIB_PUBLISHER`, `OPENLIB_OUT`, `OPENLIB_DELAY_MS`, `OPENLIB_REFRESH`).
 
 ## Catatan teknis
 

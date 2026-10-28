@@ -5,27 +5,54 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/* ============================ ARGUMEN CLI ============================ */
+function parseArgs(argv) {
+  const out = {};
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a.startsWith('--')) continue;
+    const key = a.slice(2);
+    const next = argv[i + 1];
+    if (next && !next.startsWith('--')) {
+      out[key] = next;
+      i++;
+    } else {
+      out[key] = 'true';
+    }
+  }
+  return out;
+}
+const ARGS = parseArgs(process.argv.slice(2));
+const pick = (argKey, envKey, fallback) =>
+  ARGS[argKey] !== undefined ? ARGS[argKey] : process.env[envKey] !== undefined ? process.env[envKey] : fallback;
+
 /* ============================ KONFIGURASI ============================ */
 const ORIGIN = 'https://openlibrary.telkomuniversity.ac.id';
 const CATALOG_URL = `${ORIGIN}/home/catalog.html`;
 
 // Parameter advanced search
-const PUBLISHER = process.env.OPENLIB_PUBLISHER || 'Kampus Jakarta';
+const PUBLISHER = pick('publisher', 'OPENLIB_PUBLISHER', 'Kampus Jakarta');
 
 // Folder hasil download
 const DOWNLOAD_DIR =
-  process.env.OPENLIB_OUT ||
-  'C:\\Users\\Afif\\OneDrive - Telkom University\\TUGAS AKHIR\\openlib-download';
+  pick('out', 'OPENLIB_OUT', 'C:\\Users\\Afif\\OneDrive - Telkom University\\TUGAS AKHIR\\openlib-download');
 
 // Profil browser lokal (biar login SSO cukup sekali). Tetap di komputer kamu.
 const PROFILE_DIR = path.join(__dirname, '.profile');
 
 // 0 = semua halaman / semua item
-const MAX_PAGES = Number(process.env.OPENLIB_MAX_PAGES || 0);
-const MAX_ITEMS = Number(process.env.OPENLIB_MAX_ITEMS || 0);
+const MAX_PAGES = Number(pick('pages', 'OPENLIB_MAX_PAGES', 0));
+const MAX_ITEMS = Number(pick('items', 'OPENLIB_MAX_ITEMS', 0));
+
+// Rentang urutan item (1-based, inklusif). --from 51 --to 100
+const START_INDEX = Number(pick('from', 'OPENLIB_FROM', 1));
+const END_INDEX = Number(pick('to', 'OPENLIB_TO', 0)); // 0 = sampai habis
+
+// Crawl ulang daftar (abaikan _order.json)
+const REFRESH_ORDER = ['1', 'true', 'yes'].includes(String(pick('refresh', 'OPENLIB_REFRESH', '')).toLowerCase());
 
 // Jeda antar request (sopan ke server)
-const DELAY_MS = Number(process.env.OPENLIB_DELAY_MS || 400);
+const DELAY_MS = Number(pick('delay', 'OPENLIB_DELAY_MS', 400));
 
 // Bab yang diambil
 const BAB_TARGETS = [
@@ -34,7 +61,16 @@ const BAB_TARGETS = [
 ];
 
 const MANIFEST_PATH = path.join(DOWNLOAD_DIR, '_manifest.json');
+const ORDER_PATH = path.join(DOWNLOAD_DIR, '_order.json');
 /* ==================================================================== */
+
+let stopping = false;
+process.on('SIGINT', () => {
+  if (stopping) process.exit(1);
+  stopping = true;
+  log('\n[PAUSE] Diminta berhenti. Menyelesaikan item yang sedang berjalan... (Ctrl+C lagi untuk paksa keluar)');
+});
+
 
 const log = (...a) => console.log(...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -68,6 +104,29 @@ function loadManifest() {
 function saveManifest(m) {
   ensureDir(DOWNLOAD_DIR);
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(m, null, 2), 'utf-8');
+}
+
+function loadOrder() {
+  try {
+    const data = JSON.parse(fs.readFileSync(ORDER_PATH, 'utf-8'));
+    if (!Array.isArray(data.items) || data.items.length === 0) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function saveOrder(items) {
+  ensureDir(DOWNLOAD_DIR);
+  fs.writeFileSync(
+    ORDER_PATH,
+    JSON.stringify(
+      { publisher: PUBLISHER, created_at: new Date().toISOString(), total: items.length, items },
+      null,
+      2
+    ),
+    'utf-8'
+  );
 }
 
 async function isLoggedIn(page) {
@@ -438,26 +497,39 @@ async function processItem(context, item, manifest) {
 }
 
 function writeIndex(manifest) {
-  const rows = Object.entries(manifest.items || {});
+  const order = loadOrder();
+  const orderIds = order?.items?.map((it) => String(it.id)) || [];
+  const entries = Object.entries(manifest.items || {});
+  entries.sort((a, b) => {
+    const ia = orderIds.indexOf(String(a[0]));
+    const ib = orderIds.indexOf(String(b[0]));
+    if (ia === -1 && ib === -1) return 0;
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
   const lines = [
     `# OpenLib ${PUBLISHER} — Bab 1 & Bab 2`,
     '',
-    `Total dokumen: ${rows.length}`,
+    `Total dokumen: ${entries.length}`,
     `Diperbarui: ${new Date().toISOString()}`,
     '',
-    '| ID | Kode | Judul | Tahun | Bab 1 | Bab 2 |',
-    '|---|---|---|---|---|---|',
+    '| No | ID | Kode | Judul | Tahun | Bab 1 | Bab 2 |',
+    '|---|---|---|---|---|---|---|',
   ];
-  for (const [id, it] of rows) {
+  entries.forEach(([id, it], idx) => {
     const f = it.files || {};
     const link = (v) =>
       v ? `[pdf](${encodeURI(it.folder || '')}/${encodeURIComponent(v.file)})` : '–';
+    const no = orderIds.indexOf(String(id));
     lines.push(
-      `| ${id} | ${it.code || '-'} | ${(it.title || '').replace(/\|/g, '\\|')} | ${
-        it.year || '-'
-      } | ${link(f.bab1)} | ${link(f.bab2)} |`
+      `| ${no >= 0 ? no + 1 : idx + 1} | ${id} | ${it.code || '-'} | ${(it.title || '').replace(
+        /\|/g,
+        '\\|'
+      )} | ${it.year || '-'} | ${link(f.bab1)} | ${link(f.bab2)} |`
     );
-  }
+  });
   fs.writeFileSync(path.join(DOWNLOAD_DIR, '_index.md'), lines.join('\n') + '\n', 'utf-8');
 }
 
@@ -473,6 +545,7 @@ async function main() {
   log(`Output   : ${DOWNLOAD_DIR}`);
   log(`Profil   : ${PROFILE_DIR}`);
   log(`Mode     : ${MAX_PAGES ? `maks ${MAX_PAGES} halaman` : 'semua halaman'}`);
+  log(`Rentang  : ${START_INDEX} → ${END_INDEX || 'akhir'}`);
   log('');
 
   const context = await chromium.launchPersistentContext(PROFILE_DIR, {
@@ -492,11 +565,35 @@ async function main() {
     return;
   }
 
-  await runAdvancedSearch(page);
-  const items = await crawlListing(page);
+  // Daftar urutan item: pakai cache _order.json kalau ada (biar nomor urut stabil saat pause/lanjut)
+  let items;
+  const cached = loadOrder();
+  if (cached && !REFRESH_ORDER && cached.publisher === PUBLISHER) {
+    items = cached.items;
+    log(
+      `[ORDER] Pakai urutan tersimpan: ${items.length} item (dibuat ${new Date(
+        cached.created_at
+      ).toLocaleString('id-ID')}). Pakai --refresh untuk crawl ulang.`
+    );
+  } else {
+    await runAdvancedSearch(page);
+    items = await crawlListing(page);
+    if (items.length) saveOrder(items);
+    log(`[ORDER] Urutan disimpan ke ${ORDER_PATH}`);
+  }
 
-  const targets = MAX_ITEMS > 0 ? items.slice(0, MAX_ITEMS) : items;
-  if (MAX_ITEMS > 0) log(`[LIMIT] Diproses hanya ${targets.length} item (MAX_ITEMS=${MAX_ITEMS})`);
+  const total = items.length;
+  const startIdx = Math.max(1, START_INDEX || 1);
+  const endIdx = END_INDEX > 0 ? Math.min(total, END_INDEX) : total;
+  let targets = startIdx > total ? [] : items.slice(startIdx - 1, endIdx);
+  if (MAX_ITEMS > 0) targets = targets.slice(0, MAX_ITEMS);
+
+  if (targets.length === 0) {
+    log('[INFO] Tidak ada item pada rentang tersebut.');
+    return;
+  }
+
+  log(`[RANGE] Memproses urutan ${startIdx}–${endIdx} dari total ${total} (${targets.length} item)`);
 
   log('');
   log('==============================================================');
@@ -504,10 +601,14 @@ async function main() {
   log('==============================================================');
 
   const stats = { complete: 0, partial: 0, none: 0, skipped: 0, already: 0 };
+  let lastIndex = startIdx - 1;
 
   for (let i = 0; i < targets.length; i++) {
+    if (stopping) break;
     const item = targets[i];
-    const tag = `[${i + 1}/${targets.length}]`;
+    const absIndex = startIdx + i;
+    const tag = `[${absIndex}/${total}]`;
+    lastIndex = absIndex;
     const existing = manifest.items[item.id];
     if (
       existing &&
@@ -554,7 +655,7 @@ async function main() {
 
   log('');
   log('==============================================================');
-  log(' SELESAI');
+  log(stopping ? ' DIJEDA' : ' SELESAI');
   log(` Lengkap       : ${stats.complete}`);
   log(` Sebagian      : ${stats.partial}`);
   log(` Gagal/kosong  : ${stats.none}`);
@@ -562,6 +663,15 @@ async function main() {
   log(` Skip penerbit : ${stats.skipped}`);
   log(` Output        : ${DOWNLOAD_DIR}`);
   log('==============================================================');
+
+  const next = lastIndex + 1;
+  if (stopping && next <= total) {
+    log(`[PAUSE] Berhenti di urutan ${lastIndex} dari ${total}.`);
+    log(`[PAUSE] Lanjut nanti dengan perintah:`);
+    log(`        npm start -- --from ${next}`);
+  } else if (lastIndex < total) {
+    log(`[NEXT ] Sisa urutan ${next}–${total}. Lanjut: npm start -- --from ${next}`);
+  }
   log('Browser dibiarkan terbuka. Tutup manual kalau sudah selesai.');
 }
 
