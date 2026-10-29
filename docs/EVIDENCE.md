@@ -100,23 +100,32 @@ php artisan payments:simulate <reference>
 php artisan payments:simulate <reference>     # must print: duplicate
 ```
 
-Recorded run (reference `560a38f6-1221-4735-a401-4356c59d72f2`, total 105,000, two tenants):
+Recorded run (reference `73ec962f-64a3-4e0c-aeaa-0bbd69131670`, total 105,000, two tenants,
+fresh database):
 
 ```
 Demo attempt created (no Midtrans call).
-order_id: GMFS-560a38f612214735a4014356c59d72f2-2
+order_id: GMFS-73ec962f64a34e0caeaa0bbd69131670-1
 amount: 105000
 
 Notification outcome: paid
 | Tenant | Code       | Total | Status |
-| 6      | GMFS-JV12X0| 70000 | paid   |
-| 8      | GMFS-JV12X1| 35000 | paid   |
+| 6      | GMFS-YVNE5M | 70000 | paid   |
+| 8      | GMFS-5TA8R8 | 35000 | paid   |
 
 Notification outcome: duplicate
 ```
 
-Tenant view (`Authorization: Bearer ayam-geprek-juara-token`): 1 order, `GMFS-JV12X0`, status
-`paid`, share 56,000, fee 14,000. The other tenant's order is not visible.
+Tenant view (`Authorization: Bearer ayam-geprek-juara-token`): 1 order, `GMFS-YVNE5M`, status
+`paid`, total 70,000, share 56,000, fee 14,000. The other tenant's order is not visible.
+
+Isolation probes recorded in the same run:
+
+```
+ayam reads bakso's order          -> 403
+ayam queues bakso's order         -> 403
+ayam queues its own order         -> status=queued
+```
 
 Operator settlement (`Authorization: Bearer operator-token`):
 
