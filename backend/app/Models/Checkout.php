@@ -12,13 +12,22 @@ class Checkout extends Model
 
     protected $fillable = [
         'reference',
-        'total_cents',
+        'idempotency_key',
+        'request_hash',
+        'total_amount',
         'status',
-        'payment_status',
-        'payment_reference',
-        'attempt_count',
-        'last_error',
+        'expires_at',
+        'paid_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'total_amount' => 'integer',
+            'expires_at' => 'datetime',
+            'paid_at' => 'datetime',
+        ];
+    }
 
     public function items(): HasMany
     {
@@ -30,8 +39,23 @@ class Checkout extends Model
         return $this->hasMany(TenantOrder::class);
     }
 
-    public function paymentEvents(): HasMany
+    public function paymentAttempts(): HasMany
     {
-        return $this->hasMany(PaymentEvent::class);
+        return $this->hasMany(PaymentAttempt::class);
+    }
+
+    public function latestAttempt(): ?PaymentAttempt
+    {
+        return $this->paymentAttempts()->latest('attempt_no')->first();
+    }
+
+    public function isUnpaid(): bool
+    {
+        return $this->status === 'unpaid';
+    }
+
+    public function hasExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
     }
 }

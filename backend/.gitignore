@@ -25,3 +25,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Laravel Boost generated agent artifacts (AGENTS.md and CLAUDE.md stay tracked)
+/.agents
+/.claude
+/.mcp.json
+/boost.json
+/opencode.json

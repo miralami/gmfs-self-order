@@ -7,6 +7,13 @@ use Illuminate\Validation\ValidationException;
 
 class CartService
 {
+    /**
+     * Build a server-side quote. The client only sends product ids and quantities;
+     * every price and tenant id comes from the database.
+     *
+     * @param  array<int, array{product_id: int|string, quantity: int|string}>  $items
+     * @return array{items: array<int, array<string, mixed>>, tenant_totals: array<int, int>, grand_total: int}
+     */
     public function quote(array $items): array
     {
         $productMap = Product::query()
@@ -29,7 +36,8 @@ class CartService
                 ]);
             }
 
-            $lineTotal = $product->price_cents * $item['quantity'];
+            $quantity = (int) $item['quantity'];
+            $lineTotal = $product->price * $quantity;
             $grandTotal += $lineTotal;
 
             $tenantTotals[$product->tenant_id] = ($tenantTotals[$product->tenant_id] ?? 0) + $lineTotal;
@@ -41,16 +49,16 @@ class CartService
                 'tenant_name' => $product->tenant->name,
                 'outlet_id' => $product->outlet_id,
                 'outlet_name' => $product->outlet->name,
-                'unit_price_cents' => $product->price_cents,
-                'quantity' => $item['quantity'],
-                'line_total_cents' => $lineTotal,
+                'unit_price' => $product->price,
+                'quantity' => $quantity,
+                'line_total' => $lineTotal,
             ];
         }
 
         return [
             'items' => $lineItems,
             'tenant_totals' => $tenantTotals,
-            'grand_total_cents' => $grandTotal,
+            'grand_total' => $grandTotal,
         ];
     }
 }

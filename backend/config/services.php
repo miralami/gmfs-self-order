@@ -14,6 +14,16 @@ return [
     |
     */
 
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY', ''),
+        'client_key' => env('MIDTRANS_CLIENT_KEY', ''),
+        'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
+        'base_url' => env('MIDTRANS_BASE_URL', 'https://api.sandbox.midtrans.com'),
+        'timeout' => (int) env('MIDTRANS_TIMEOUT', 15),
+        // Optional CA bundle for Windows/local PHP builds without a global curl.cainfo.
+        'ca_bundle' => env('MIDTRANS_CA_BUNDLE'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

@@ -16,13 +16,27 @@ class CheckoutItem extends Model
         'outlet_id',
         'product_id',
         'product_name',
-        'unit_price_cents',
+        'unit_price',
         'quantity',
-        'line_total_cents',
+        'line_total',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'unit_price' => 'integer',
+            'quantity' => 'integer',
+            'line_total' => 'integer',
+        ];
+    }
 
     public function checkout(): BelongsTo
     {
         return $this->belongsTo(Checkout::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

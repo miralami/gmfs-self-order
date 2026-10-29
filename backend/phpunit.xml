@@ -32,5 +32,10 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="MIDTRANS_SERVER_KEY" value="test-server-key"/>
+        <env name="MIDTRANS_BASE_URL" value="https://api.sandbox.midtrans.test"/>
+        <env name="MIDTRANS_TIMEOUT" value="5"/>
+        <env name="PLATFORM_FEE_PERCENT" value="20"/>
+        <env name="CHECKOUT_TTL_MINUTES" value="15"/>
     </php>
 </phpunit>

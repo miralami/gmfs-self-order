@@ -14,11 +14,14 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('outlet_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            // Snapshot of name and price at checkout time. The product row may change later.
             $table->string('product_name');
-            $table->unsignedInteger('unit_price_cents');
+            $table->unsignedInteger('unit_price');
             $table->unsignedInteger('quantity');
-            $table->unsignedInteger('line_total_cents');
+            $table->unsignedInteger('line_total');
             $table->timestamps();
+
+            $table->index(['checkout_id', 'tenant_id']);
         });
     }
 

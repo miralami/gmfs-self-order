@@ -13,9 +13,12 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('outlet_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->unsignedInteger('price_cents');
+            // Money is always an integer number of rupiah. Never a float.
+            $table->unsignedInteger('price');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+
+            $table->index(['tenant_id', 'is_active']);
         });
     }
 

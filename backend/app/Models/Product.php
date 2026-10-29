@@ -10,7 +10,15 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tenant_id', 'outlet_id', 'name', 'price_cents', 'is_active'];
+    protected $fillable = ['tenant_id', 'outlet_id', 'name', 'price', 'is_active'];
+
+    protected function casts(): array
+    {
+        return [
+            'price' => 'integer',
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function tenant(): BelongsTo
     {

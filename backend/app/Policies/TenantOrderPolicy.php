@@ -9,11 +9,21 @@ class TenantOrderPolicy
 {
     public function view(User $user, TenantOrder $tenantOrder): bool
     {
-        return $user->isOperator() || ($user->isTenantManager() && (int) $user->tenant_id === (int) $tenantOrder->tenant_id);
+        if ($user->isOperator()) {
+            return true;
+        }
+
+        return $user->isTenantManager()
+            && $user->tenant_id !== null
+            && (int) $user->tenant_id === (int) $tenantOrder->tenant_id;
     }
 
     public function queuePreparation(User $user, TenantOrder $tenantOrder): bool
     {
-        return $user->isTenantManager() && (int) $user->tenant_id === (int) $tenantOrder->tenant_id;
+        // Only the owning tenant may queue its own order. The operator has read
+        // access to settlements, but does not operate a stall.
+        return $user->isTenantManager()
+            && $user->tenant_id !== null
+            && (int) $user->tenant_id === (int) $tenantOrder->tenant_id;
     }
 }
