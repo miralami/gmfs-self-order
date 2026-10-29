@@ -4,6 +4,9 @@ This document is the design source for **BAB III**. It states what the system do
 shaped, which state machines exist, and which alternatives were rejected and why. It matches the
 code in `/backend`; if they disagree, the code is the bug — fix one of them deliberately.
 
+Renderable Mermaid sources (ERD, state machines, sequences, deployment) are in
+[`DIAGRAMS.md`](DIAGRAMS.md).
+
 ## 1. Actors and use cases
 
 | Actor | Use case | Trigger | Result |

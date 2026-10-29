@@ -337,6 +337,7 @@ Black-box functional testing plus UAT, per D6.
   boundary, the three state machines, sequence diagrams for checkout, charge, notification,
   reconciliation, settlement; ADRs: shared schema, explicit scope vs global scope, split at
   checkout, 80/20 stored split, Core API over Snap, no Midtrans Idempotency-Key reliance.
+  Mermaid sources for the ERD, state machines and sequences are in `docs/DIAGRAMS.md`.
 - **BAB IV — Implementation and testing.** Module structure, core-zone code excerpts (with the
   reasons, not just the code), env/tunnel configuration, test matrix and results, concurrency
   results, UAT results.

@@ -30,7 +30,7 @@ tenant order lifecycle, and evaluate with black-box tests plus UAT.
   `SettlementTest`, `CatalogAndSeederTest`, `tests/Concerns/CreatesKiosk.php`.
 - Added `backend/scripts/break-it.php` concurrency/replay harness.
 - Rewrote the documentation set: `docs/PRD.md`, `docs/BSD.md`, `docs/API.md`, `docs/EVIDENCE.md`,
-  `README.md`, `Handover Self-Order Kiosk Thesis Project.md`, root `AGENTS.md`.
+  `docs/DIAGRAMS.md`, `README.md`, `Handover Self-Order Kiosk Thesis Project.md`, root `AGENTS.md`.
 
 **Checks.** `php artisan test` → 32 tests / 168 assertions passing. `vendor/bin/pint` clean.
 `npm run build` clean. `break-it.php` at N = 8 on SQLite → 14/14 checks pass. Manual CLI demo:

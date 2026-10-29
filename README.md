@@ -15,8 +15,8 @@ operator sees an 80/20 settlement report.
 - Payments: Midtrans Core API, QRIS only, sandbox
 - Tests: 32 tests / 168 assertions (`cd backend && php artisan test`)
 
-Docs: [`docs/PRD.md`](docs/PRD.md) · [`docs/API.md`](docs/API.md) ·
-[`docs/BSD.md`](docs/BSD.md) · [`docs/EVIDENCE.md`](docs/EVIDENCE.md) ·
+Docs: [`docs/PRD.md`](docs/PRD.md) · [`docs/BSD.md`](docs/BSD.md) · [`docs/API.md`](docs/API.md) ·
+[`docs/DIAGRAMS.md`](docs/DIAGRAMS.md) · [`docs/EVIDENCE.md`](docs/EVIDENCE.md) ·
 [`Handover Self-Order Kiosk Thesis Project.md`](Handover%20Self-Order%20Kiosk%20Thesis%20Project.md)
 
 ## 1. Prerequisites
@@ -283,7 +283,7 @@ backend/
 frontend/
   src/pages/                     Kiosk, TenantDashboard, OperatorDashboard
   src/api.ts                     typed API client
-docs/                            PRD, API, BSD, EVIDENCE
+docs/                            PRD, BSD, DIAGRAMS, API, EVIDENCE, BACKLOG, AI log
 ```
 
 ## 10. Known limitations
