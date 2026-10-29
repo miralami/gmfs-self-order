@@ -126,6 +126,13 @@ class PaymentService
             return 'malformed';
         }
 
+        // A trusted Get Status response has no signature, because it is not a
+        // notification. Synthesise the signature the gateway would have sent so the
+        // audit row is consistent and repeated reconciliation runs dedupe normally.
+        if ($signature === '' && $trusted) {
+            $signature = $this->gateway->signatureKey($orderId, $statusCode, $grossAmount);
+        }
+
         $signatureValid = $trusted
             || ($signature !== '' && hash_equals(
                 $this->gateway->signatureKey($orderId, $statusCode, $grossAmount),

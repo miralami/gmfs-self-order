@@ -27,7 +27,7 @@ cd backend
 composer install
 php artisan migrate:fresh --seed
 php artisan serve --port=8000
-php artisan test                     # 32 tests / 167 assertions must stay green
+php artisan test                     # 32 tests / 168 assertions must stay green
 php artisan test --filter=PaymentNotificationTest
 vendor/bin/pint app config database routes tests
 php scripts/break-it.php http://127.0.0.1:8000 50

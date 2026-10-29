@@ -13,7 +13,7 @@ operator sees an 80/20 settlement report.
 - Database: PostgreSQL 16+ (SQLite works for a quick local run; concurrency evidence needs
   PostgreSQL)
 - Payments: Midtrans Core API, QRIS only, sandbox
-- Tests: 32 tests / 167 assertions (`cd backend && php artisan test`)
+- Tests: 32 tests / 168 assertions (`cd backend && php artisan test`)
 
 Docs: [`docs/PRD.md`](docs/PRD.md) · [`docs/API.md`](docs/API.md) ·
 [`docs/BSD.md`](docs/BSD.md) · [`docs/EVIDENCE.md`](docs/EVIDENCE.md) ·
@@ -279,7 +279,7 @@ backend/
   database/migrations/           schema, with the unique idempotency indexes
   database/seeders/              13 tenants, managers, operator
   scripts/break-it.php           concurrency and replay harness
-  tests/                         32 tests / 167 assertions
+  tests/                         32 tests / 168 assertions
 frontend/
   src/pages/                     Kiosk, TenantDashboard, OperatorDashboard
   src/api.ts                     typed API client

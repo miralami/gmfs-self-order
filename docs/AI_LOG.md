@@ -32,7 +32,7 @@ tenant order lifecycle, and evaluate with black-box tests plus UAT.
 - Rewrote the documentation set: `docs/PRD.md`, `docs/BSD.md`, `docs/API.md`, `docs/EVIDENCE.md`,
   `README.md`, `Handover Self-Order Kiosk Thesis Project.md`, root `AGENTS.md`.
 
-**Checks.** `php artisan test` → 32 tests / 167 assertions passing. `vendor/bin/pint` clean.
+**Checks.** `php artisan test` → 32 tests / 168 assertions passing. `vendor/bin/pint` clean.
 `npm run build` clean. `break-it.php` at N = 8 on SQLite → 14/14 checks pass. Manual CLI demo:
 checkout 105,000 split into 70,000 + 35,000; settlement 84,000 / 21,000.
 

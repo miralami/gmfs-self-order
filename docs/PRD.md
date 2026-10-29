@@ -161,7 +161,7 @@ Full request/response examples are in [`API.md`](API.md).
 - [x] The settlement report reconciles: `tenant_share + platform_fee = gross` for every row and in
       total.
 - [x] Seeder creates 13 tenants, one manager per tenant, and one operator.
-- [x] All of the above is covered by the automated suite (32 tests, 167 assertions).
+- [x] All of the above is covered by the automated suite (32 tests, 168 assertions).
 
 ## 9. Evaluation
 

@@ -30,7 +30,7 @@ cd backend
 php artisan test
 ```
 
-Recorded result: **32 tests, 167 assertions, all passed, ~1.4 s**.
+Recorded result: **32 tests, 168 assertions, all passed, ~1.4 s**.
 
 | ID | Test | What it proves |
 | --- | --- | --- |

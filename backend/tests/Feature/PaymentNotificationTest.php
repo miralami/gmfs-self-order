@@ -171,6 +171,7 @@ class PaymentNotificationTest extends TestCase
 
         $this->assertSame('paid', $attempt->checkout->fresh()->status);
         $this->assertSame(TenantOrder::STATUS_PAID, $attempt->checkout->tenantOrders()->first()->status);
+        $this->assertSame(1, PaymentNotification::query()->count());
     }
 
     public function test_a_forged_notification_cannot_block_the_genuine_one(): void

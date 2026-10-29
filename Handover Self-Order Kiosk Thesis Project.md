@@ -265,7 +265,7 @@ one entry in `docs/AI_LOG.md`.
 ## 11. Test and evidence plan
 
 Naming: T-TEN (tenancy), T-CHK (checkout idempotency), T-PAY (payment and webhook), T-SPL (order
-split). The automated suite currently runs **32 tests / 167 assertions, all passing** on SQLite.
+split). The automated suite currently runs **32 tests / 168 assertions, all passing** on SQLite.
 `docs/EVIDENCE.md` maps every item below to a test name, a command and a result table.
 
 **T-TEN**
