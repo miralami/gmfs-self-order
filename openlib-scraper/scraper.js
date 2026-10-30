@@ -67,7 +67,10 @@ const BAB_TARGETS = [
 
 const MANIFEST_PATH = path.join(DOWNLOAD_DIR, '_manifest.json');
 const ORDER_PATH = path.join(DOWNLOAD_DIR, '_order.json');
+const AUTH_STATE_PATH = path.join(__dirname, '.auth.json');
 /* ==================================================================== */
+
+class SessionError extends Error {}
 
 let stopping = false;
 process.on('SIGINT', () => {
@@ -418,6 +421,15 @@ async function processItem(context, item, manifest) {
       }))
     );
 
+    // Pengaman: halaman blokir / sesi mati jangan dianggap "tidak tersedia"
+    const pageTitle = await detail.title().catch(() => '');
+    if (/just a moment|attention required|access denied|verify you are human/i.test(pageTitle)) {
+      throw new SessionError(`Halaman diblokir (${short(pageTitle, 60)})`);
+    }
+    if (links.length === 0 && !(await isLoggedIn(detail))) {
+      throw new SessionError('Sesi login tidak aktif saat membuka detail');
+    }
+
     const files = {};
     for (const target of BAB_TARGETS) {
       const match =
@@ -545,10 +557,33 @@ async function openBrowser(headless) {
     viewport: { width: 1360, height: 900 },
     slowMo: headless ? 0 : 60,
   });
+
+  // Session cookie OpenLib tidak ikut tersimpan saat browser ditutup,
+  // jadi inject ulang dari .auth.json.
+  if (fs.existsSync(AUTH_STATE_PATH)) {
+    try {
+      const state = JSON.parse(fs.readFileSync(AUTH_STATE_PATH, 'utf-8'));
+      if (Array.isArray(state.cookies) && state.cookies.length) {
+        await ctx.addCookies(state.cookies);
+      }
+    } catch (e) {
+      log(`[WARN] Gagal memuat sesi tersimpan: ${e.message}`);
+    }
+  }
+
   ctx.on('page', (p) => p.on('dialog', (d) => d.accept().catch(() => {})));
   const pg = ctx.pages()[0] || (await ctx.newPage());
   await pg.goto(ORIGIN, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
   return { ctx, pg };
+}
+
+async function saveAuthState(context) {
+  try {
+    await context.storageState({ path: AUTH_STATE_PATH });
+    log('[LOGIN] Cookie sesi disimpan ke .auth.json (lokal, tidak di-commit).');
+  } catch (e) {
+    log(`[WARN] Gagal menyimpan sesi: ${e.message}`);
+  }
 }
 
 async function main() {
@@ -581,6 +616,7 @@ async function main() {
       log('[FATAL] Login tidak terdeteksi dalam batas waktu. Browser dibiarkan terbuka.');
       return;
     }
+    await saveAuthState(context);
 
     if (!KEEP_HEADFUL) {
       log('[MODE] Login tersimpan. Menutup browser dan beralih ke headless...');
@@ -595,6 +631,7 @@ async function main() {
     }
   } else {
     log('[LOGIN] Sesi login tersimpan terdeteksi — jalan headless.');
+    await saveAuthState(context);
   }
 
   // Daftar urutan item: pakai cache _order.json kalau ada (biar nomor urut stabil saat pause/lanjut)
@@ -634,6 +671,8 @@ async function main() {
 
   const stats = { complete: 0, partial: 0, none: 0, skipped: 0, already: 0 };
   let lastIndex = startIdx - 1;
+  let consecutiveEmpty = 0;
+  let sessionLost = null;
 
   for (let i = 0; i < targets.length; i++) {
     if (stopping) break;
@@ -664,8 +703,16 @@ async function main() {
       else if (res.status === 'partial') stats.partial++;
       else if (res.status === 'skipped-publisher') stats.skipped++;
       else stats.none++;
+      if (res.status === 'none') consecutiveEmpty++;
+      else consecutiveEmpty = 0;
     } catch (e) {
+      if (e instanceof SessionError) {
+        sessionLost = e.message;
+        log(`  [STOP] ${e.message}`);
+        break;
+      }
       stats.none++;
+      consecutiveEmpty++;
       log(`  [ERROR] ${e.message}`);
       manifest.items[item.id] = {
         title: item.title,
@@ -679,6 +726,13 @@ async function main() {
       saveManifest(manifest);
     }
 
+    // Kalau banyak item beruntun kosong, kemungkinan besar sesi/akses bermasalah
+    if (consecutiveEmpty >= 8) {
+      sessionLost = `${consecutiveEmpty} item beruntun tanpa Bab 1/Bab 2 (kemungkinan sesi tidak aktif)`;
+      log(`  [STOP] ${sessionLost}`);
+      break;
+    }
+
     await sleep(DELAY_MS);
   }
 
@@ -687,7 +741,7 @@ async function main() {
 
   log('');
   log('==============================================================');
-  log(stopping ? ' DIJEDA' : ' SELESAI');
+  log(stopping ? ' DIJEDA' : sessionLost ? ' DIHENTIKAN' : ' SELESAI');
   log(` Lengkap       : ${stats.complete}`);
   log(` Sebagian      : ${stats.partial}`);
   log(` Gagal/kosong  : ${stats.none}`);
@@ -695,6 +749,13 @@ async function main() {
   log(` Skip penerbit : ${stats.skipped}`);
   log(` Output        : ${DOWNLOAD_DIR}`);
   log('==============================================================');
+
+  if (sessionLost) {
+    log(`[MASALAH] ${sessionLost}`);
+    log('[SARAN] 1) Hapus sesi lama: npm run reset-session');
+    log('[SARAN] 2) Login ulang terlihat: npm start -- --headed --from ' + Math.max(1, lastIndex - 1));
+    log('[SARAN] 3) Setelah login, Ctrl+C lalu jalankan headless lagi dari nomor yang sama.');
+  }
 
   const next = lastIndex + 1;
   if (stopping && next <= total) {

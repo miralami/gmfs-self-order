@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node scraper.js",
     "install-browsers": "npx playwright install chromium",
-    "reset-profile": "node -e \"require('fs').rmSync('.profile',{recursive:true,force:true});console.log('profile dihapus')\""
+    "reset-profile": "node -e \"require('fs').rmSync('.profile',{recursive:true,force:true});console.log('profile dihapus')\"",
+    "reset-session": "node -e \"const fs=require('fs');fs.rmSync('.auth.json',{force:true});fs.rmSync('.profile',{recursive:true,force:true});console.log('sesi dihapus')\""
   },
   "dependencies": {
     "playwright": "^1.49.0"

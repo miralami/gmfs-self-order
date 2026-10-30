@@ -12,9 +12,28 @@ Script ini jalan **di komputer kamu**. Kamu yang login SSO, dan kredensial tidak
    - telusuri **semua halaman hasil** (filter tetap terbawa via session)
    - buka tiap detail dokumen, ambil **BAB 1** dan **BAB 2**
    - download PDF-nya ke folder tujuan
-3. Run berikutnya langsung headless dari awal (sesi tersimpan di `.profile/`) sampai sesi kedaluwarsa.
+3. Run berikutnya langsung headless dari awal (sesi tersimpan di `.profile/` + `.auth.json`) sampai sesi kedaluwarsa.
 
 Mau lihat browsernya terus (buat debug)? Pakai `--headed`.
+
+## Kenapa Bab 1/2 kadang "tidak tersedia"?
+
+File Bab 1/Bab 2 di OpenLib **hanya muncul kalau sesi login aktif**. Kalau sesi mati, halaman detail cuma menampilkan `abstraksi`/`abstract`, jadi Bab 1/2 terlihat "tidak ada".
+
+Karena itu:
+- Cookie sesi disimpan ke `.auth.json` (session cookie ikut disimpan), lalu di-inject saat browser headless dibuka.
+- Kalau halaman detail kosong **dan** status login hilang, script berhenti dengan `[STOP]` — bukan menandai "kosong".
+- Kalau 8 item beruntun tanpa Bab 1/2, script juga berhenti dan menyarankan login ulang.
+- Item yang belum berhasil **tidak dianggap selesai**, jadi otomatis diulang saat resume.
+
+Kalau kena masalah sesi:
+
+```powershell
+npm run reset-session
+npm start -- --headed --from 29   # login ulang, lihat browsernya
+# setelah login terdeteksi, Ctrl+C, lalu:
+npm start -- --from 29            # lanjut headless
+```
 
 ## Cara pakai
 
