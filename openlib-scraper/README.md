@@ -4,15 +4,17 @@ Script ini jalan **di komputer kamu**. Kamu yang login SSO, dan kredensial tidak
 
 ## Alur otomatis
 
-1. Browser Chromium terbuka → kamu login SSO sekali (MFA/OTP boleh).
-2. Script **mendeteksi login otomatis**, lalu lanjut sendiri:
+1. Kalau belum ada sesi: browser Chromium terbuka (terlihat) → kamu login SSO sekali (MFA/OTP boleh).
+2. Begitu login terdeteksi, script **menyimpan sesi, menutup browser, lalu lanjut headless** (tanpa jendela) dan jalan sendiri:
    - buka `Catalog`
    - klik **Advanced**
    - isi **Penerbit = "Kampus Jakarta"**
    - telusuri **semua halaman hasil** (filter tetap terbawa via session)
    - buka tiap detail dokumen, ambil **BAB 1** dan **BAB 2**
    - download PDF-nya ke folder tujuan
-3. Login disimpan di profil lokal `.profile/`, jadi run berikutnya tidak perlu login lagi (sampai sesi kedaluwarsa).
+3. Run berikutnya langsung headless dari awal (sesi tersimpan di `.profile/`) sampai sesi kedaluwarsa.
+
+Mau lihat browsernya terus (buat debug)? Pakai `--headed`.
 
 ## Cara pakai
 
@@ -85,6 +87,7 @@ npm start -- --refresh --from 1
 | `--out "D:\path"` | folder OneDrive | folder output |
 | `--delay 400` | `400` | jeda antar request (ms) |
 | `--refresh` | – | crawl ulang daftar, abaikan `_order.json` |
+| `--headed` | – | jangan pindah headless; browser tetap terlihat |
 
 Semua opsi juga bisa lewat environment variable (`OPENLIB_FROM`, `OPENLIB_TO`, `OPENLIB_MAX_ITEMS`, `OPENLIB_MAX_PAGES`, `OPENLIB_PUBLISHER`, `OPENLIB_OUT`, `OPENLIB_DELAY_MS`, `OPENLIB_REFRESH`).
 

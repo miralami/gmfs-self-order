@@ -54,6 +54,11 @@ const REFRESH_ORDER = ['1', 'true', 'yes'].includes(String(pick('refresh', 'OPEN
 // Jeda antar request (sopan ke server)
 const DELAY_MS = Number(pick('delay', 'OPENLIB_DELAY_MS', 400));
 
+// Setelah login, browser otomatis pindah ke headless. Pakai --headed untuk tetap terlihat.
+const KEEP_HEADFUL = ['1', 'true', 'yes'].includes(
+  String(pick('headed', 'OPENLIB_HEADED', '')).toLowerCase()
+);
+
 // Bab yang diambil
 const BAB_TARGETS = [
   { key: 'bab1', label: 'BAB 1' },
@@ -533,6 +538,19 @@ function writeIndex(manifest) {
   fs.writeFileSync(path.join(DOWNLOAD_DIR, '_index.md'), lines.join('\n') + '\n', 'utf-8');
 }
 
+async function openBrowser(headless) {
+  const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
+    headless,
+    acceptDownloads: true,
+    viewport: { width: 1360, height: 900 },
+    slowMo: headless ? 0 : 60,
+  });
+  ctx.on('page', (p) => p.on('dialog', (d) => d.accept().catch(() => {})));
+  const pg = ctx.pages()[0] || (await ctx.newPage());
+  await pg.goto(ORIGIN, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+  return { ctx, pg };
+}
+
 async function main() {
   ensureDir(DOWNLOAD_DIR);
   const manifest = loadManifest();
@@ -546,23 +564,37 @@ async function main() {
   log(`Profil   : ${PROFILE_DIR}`);
   log(`Mode     : ${MAX_PAGES ? `maks ${MAX_PAGES} halaman` : 'semua halaman'}`);
   log(`Rentang  : ${START_INDEX} → ${END_INDEX || 'akhir'}`);
+  log(`Tampilan : ${KEEP_HEADFUL ? 'headful (selalu terlihat)' : 'headless setelah login'}`);
   log('');
 
-  const context = await chromium.launchPersistentContext(PROFILE_DIR, {
-    headless: false,
-    acceptDownloads: true,
-    viewport: { width: 1360, height: 900 },
-    slowMo: 60,
-  });
-  context.on('page', (p) => p.on('dialog', (d) => d.accept().catch(() => {})));
+  // 1) Coba langsung headless pakai sesi tersimpan.
+  let { ctx: context, pg: page } = await openBrowser(true);
 
-  const page = context.pages()[0] || (await context.newPage());
-  await page.goto(ORIGIN, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+  if (!(await isLoggedIn(page))) {
+    log('[LOGIN] Sesi tidak ditemukan. Membuka browser untuk login SSO...');
+    await context.close();
+    await sleep(800);
 
-  const ok = await waitForLogin(page);
-  if (!ok) {
-    log('[FATAL] Login tidak terdeteksi dalam batas waktu. Browser dibiarkan terbuka.');
-    return;
+    ({ ctx: context, pg: page } = await openBrowser(false));
+    const ok = await waitForLogin(page);
+    if (!ok) {
+      log('[FATAL] Login tidak terdeteksi dalam batas waktu. Browser dibiarkan terbuka.');
+      return;
+    }
+
+    if (!KEEP_HEADFUL) {
+      log('[MODE] Login tersimpan. Menutup browser dan beralih ke headless...');
+      await context.close();
+      await sleep(800);
+      ({ ctx: context, pg: page } = await openBrowser(true));
+      if (await isLoggedIn(page)) {
+        log('[MODE] Headless aktif. Lanjut otomatis.');
+      } else {
+        log('[WARN] Sesi tidak terbaca setelah relaunch. Jalankan lagi atau pakai --headed.');
+      }
+    }
+  } else {
+    log('[LOGIN] Sesi login tersimpan terdeteksi — jalan headless.');
   }
 
   // Daftar urutan item: pakai cache _order.json kalau ada (biar nomor urut stabil saat pause/lanjut)
