@@ -160,8 +160,13 @@ Full request/response examples are in [`API.md`](API.md).
 - [x] Cross-tenant reads and queue actions return `403`; guests get `401`.
 - [x] The settlement report reconciles: `tenant_share + platform_fee = gross` for every row and in
       total.
+- [x] A cart mixing three tenants produces three child orders whose subtotals sum to the checkout.
+- [x] The 80/20 split is whole rupiah for edge amounts (Rp 1, 7,777, 33,333, 50,001) and never
+      loses a rupiah to rounding.
 - [x] Seeder creates 13 tenants, one manager per tenant, and one operator.
-- [x] All of the above is covered by the automated suite (32 tests, 168 assertions).
+- [x] Removing a safeguard breaks the test that is supposed to catch it: 8 of 9 mutations killed,
+      with the survivor explained in [`EVIDENCE.md`](EVIDENCE.md).
+- [x] All of the above is covered by the automated suite (35 tests, 201 assertions).
 
 ## 9. Evaluation
 

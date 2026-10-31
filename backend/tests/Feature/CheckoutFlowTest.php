@@ -47,6 +47,33 @@ class CheckoutFlowTest extends TestCase
         );
     }
 
+    public function test_a_three_tenant_cart_creates_three_orders_whose_totals_sum_to_the_checkout(): void
+    {
+        $this->fakeSuccessfulCharge();
+        [$firstTenant, , $firstProduct] = $this->tenantWithProduct('Noodle House', 'noodle-house', 50000);
+        [$secondTenant, , $secondProduct] = $this->tenantWithProduct('Burger Point', 'burger-point', 60000);
+        [$thirdTenant, , $thirdProduct] = $this->tenantWithProduct('Fresh Bowl', 'fresh-bowl', 33000);
+
+        $this->placeCheckout([
+            ['product_id' => $firstProduct->id, 'quantity' => 2],
+            ['product_id' => $secondProduct->id, 'quantity' => 1],
+            ['product_id' => $thirdProduct->id, 'quantity' => 1],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.total_amount', 193000)
+            ->assertJsonCount(3, 'data.tenant_orders');
+
+        $checkout = Checkout::query()->firstOrFail();
+        $orders = $checkout->tenantOrders()->orderBy('tenant_id')->get();
+
+        $this->assertSame(3, $orders->count());
+        $this->assertSame($checkout->total_amount, (int) $orders->sum('total_amount'));
+        $this->assertSame(
+            [$firstTenant->id => 100000, $secondTenant->id => 60000, $thirdTenant->id => 33000],
+            $orders->pluck('total_amount', 'tenant_id')->map(fn ($amount): int => (int) $amount)->all(),
+        );
+    }
+
     public function test_same_idempotency_key_returns_the_same_checkout(): void
     {
         $this->fakeSuccessfulCharge();

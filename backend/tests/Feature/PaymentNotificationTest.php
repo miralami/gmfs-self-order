@@ -36,6 +36,47 @@ class PaymentNotificationTest extends TestCase
         $this->assertSame($order->total_amount, $order->platform_fee_amount + $order->tenant_share_amount);
     }
 
+    public function test_the_split_floors_the_fee_so_share_and_fee_sum_to_the_total(): void
+    {
+        // 20% of 33,333 is 6,666.6. Rounding would lose one rupiah somewhere;
+        // flooring the fee and giving the remainder to the tenant cannot.
+        $attempt = $this->placeSingleTenantCheckout(amount: 33333);
+
+        $this->postJson('/api/v1/payments/midtrans/notification', $this->notificationPayload($attempt))
+            ->assertOk()
+            ->assertJsonPath('outcome', 'paid');
+
+        $order = $attempt->checkout->fresh()->tenantOrders()->firstOrFail();
+
+        $this->assertSame(6666, $order->platform_fee_amount);
+        $this->assertSame(26667, $order->tenant_share_amount);
+        $this->assertSame(
+            $order->total_amount,
+            $order->platform_fee_amount + $order->tenant_share_amount,
+        );
+    }
+
+    public function test_tiny_and_odd_amounts_still_split_into_whole_rupiah(): void
+    {
+        foreach ([1, 7777, 50001] as $index => $amount) {
+            $attempt = $this->placeSingleTenantCheckout(amount: $amount, slug: 'tenant-edge-'.$index);
+
+            $this->postJson('/api/v1/payments/midtrans/notification', $this->notificationPayload($attempt))
+                ->assertOk()
+                ->assertJsonPath('outcome', 'paid');
+
+            $order = $attempt->checkout->fresh()->tenantOrders()->firstOrFail();
+
+            $this->assertSame(intdiv($amount * 20, 100), $order->platform_fee_amount, 'fee for '.$amount);
+            $this->assertSame(
+                $amount,
+                $order->platform_fee_amount + $order->tenant_share_amount,
+                'split for '.$amount,
+            );
+            $this->assertGreaterThanOrEqual(0, $order->tenant_share_amount);
+        }
+    }
+
     public function test_replayed_notifications_produce_one_paid_state_and_one_split(): void
     {
         $attempt = $this->placeSingleTenantCheckout(amount: 50000);
@@ -235,13 +276,13 @@ class PaymentNotificationTest extends TestCase
         $this->assertSame(PaymentAttempt::STATUS_CANCELLED, $attempt->fresh()->status);
     }
 
-    private function placeSingleTenantCheckout(int $amount): PaymentAttempt
+    private function placeSingleTenantCheckout(int $amount, string $slug = 'tenant-one'): PaymentAttempt
     {
         $this->fakeSuccessfulCharge();
-        [, , $product] = $this->tenantWithProduct(price: $amount);
+        [, , $product] = $this->tenantWithProduct(price: $amount, slug: $slug);
 
         $this->placeCheckout([['product_id' => $product->id, 'quantity' => 1]])->assertCreated();
 
-        return PaymentAttempt::query()->firstOrFail();
+        return PaymentAttempt::query()->latest('id')->firstOrFail();
     }
 }

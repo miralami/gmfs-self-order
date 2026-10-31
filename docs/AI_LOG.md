@@ -32,7 +32,7 @@ tenant order lifecycle, and evaluate with black-box tests plus UAT.
 - Rewrote the documentation set: `docs/PRD.md`, `docs/BSD.md`, `docs/API.md`, `docs/EVIDENCE.md`,
   `docs/DIAGRAMS.md`, `README.md`, `Handover Self-Order Kiosk Thesis Project.md`, root `AGENTS.md`.
 
-**Checks.** `php artisan test` → 32 tests / 168 assertions passing. `vendor/bin/pint` clean.
+**Checks.** `php artisan test` → 35 tests / 201 assertions passing. `vendor/bin/pint` clean.
 `npm run build` clean. `break-it.php` at N = 8 on SQLite → 14/14 checks pass. Manual CLI demo:
 checkout 105,000 split into 70,000 + 35,000; settlement 84,000 / 21,000.
 
@@ -52,3 +52,36 @@ checkout 105,000 split into 70,000 + 35,000; settlement 84,000 / 21,000.
 - Concurrency evidence must be re-run on PostgreSQL; SQLite serialises writers.
 - Lecturer approval for D1 is still outstanding.
 - UAT has not been run.
+
+## 2026-10-31 — Mutation evidence, money edge cases, handover reconciliation
+
+**Why.** The handover was revised against the approved BAB 1 and had drifted back to a
+pre-implementation plan. The thesis also needs evidence that the safeguards, not luck, are what make
+the tests pass.
+
+**Changed.**
+
+- Added `backend/scripts/mutation-check.php`: patches one safeguard at a time, runs the test that
+  should catch it, prints the failure line, and restores the file in a `finally` block. A stale
+  patch pattern aborts instead of silently passing.
+- Added `T-CHK-6`: a three-tenant cart creates three child orders whose subtotals sum to the
+  checkout.
+- Added `T-PAY-13` and `T-PAY-14`: the split is whole rupiah at 33,333 and at Rp 1, 7,777 and
+  50,001.
+- Reconciled the handover with the code: status, explicit `visibleTo()` scope instead of a global
+  scope, stored split instead of a settlement table, `403` instead of `404`, no Midtrans
+  `Idempotency-Key`, signature inside the replay key, state names, phase status, and open items.
+- Recorded the mutation results in `docs/EVIDENCE.md`.
+
+**Checks.** `php artisan test` → 35 tests / 201 assertions passing. `php scripts/mutation-check.php`
+→ 8 of 9 mutations killed; M2 survives by design because two other layers catch the duplicate first.
+
+**Finding.** M8 initially survived: `SettlementTest` computed the split in its own fixture, so it
+never exercised `PaymentService`. The new `T-PAY-13` drives a real notification and kills M8. This is
+recorded in `docs/EVIDENCE.md` as an example of mutation testing finding a test that passed for the
+wrong reason.
+
+**Remaining risk.** The rounding direction is still a student decision: the code floors the 20% fee
+(33,333 → 26,667 / 6,666); the earlier handover draft floored the 80% tenant share (26,666 / 6,667).
+Both sum exactly, but the thesis must state one. PostgreSQL concurrency evidence and UAT are still
+outstanding.

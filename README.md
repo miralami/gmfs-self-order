@@ -13,7 +13,7 @@ operator sees an 80/20 settlement report.
 - Database: PostgreSQL 16+ (SQLite works for a quick local run; concurrency evidence needs
   PostgreSQL)
 - Payments: Midtrans Core API, QRIS only, sandbox
-- Tests: 32 tests / 168 assertions (`cd backend && php artisan test`)
+- Tests: 35 tests / 201 assertions (`cd backend && php artisan test`)
 
 Docs: [`docs/PRD.md`](docs/PRD.md) · [`docs/BSD.md`](docs/BSD.md) · [`docs/API.md`](docs/API.md) ·
 [`docs/DIAGRAMS.md`](docs/DIAGRAMS.md) · [`docs/EVIDENCE.md`](docs/EVIDENCE.md) ·
@@ -232,11 +232,22 @@ vendor/bin/pint app config database routes tests   # formatting
 
 | Suite | Covers |
 | --- | --- |
-| `CheckoutFlowTest` | Split at checkout, idempotency key replay, 409 on a different cart, gateway failure retry, queue blocked before payment |
-| `PaymentNotificationTest` | Paid split, replayed notifications, invalid signature, amount mismatch, late payment, already-paid, unknown order, expiry, reconciliation |
-| `TenantIsolationTest` | Manager scoping, guessed IDs, operator read-only access, guest `401`, QR proxy |
+| `CheckoutFlowTest` | Split at checkout for two and three tenants, idempotency key replay, 409 on a different cart, gateway failure retry, queue blocked before payment |
+| `PaymentNotificationTest` | Paid split (including Rp 1 and odd amounts), replayed notifications, invalid signature, amount mismatch, late payment, already-paid, unknown order, expiry, reconciliation, forged-then-genuine delivery |
+| `TenantIsolationTest` | Manager scoping, guessed IDs (`403`), operator read-only access, guest `401`, QR proxy |
 | `SettlementTest` | 80/20 stored split, unpaid excluded, date filter, totals reconcile |
 | `CatalogAndSeederTest` | 13 tenants, manager per tenant, integer rupiah prices, unknown product rejected |
+
+Mutation sensitivity (does removing a safeguard actually break a test?):
+
+```bash
+cd backend
+php scripts/mutation-check.php          # 8 of 9 mutations killed, M2 explained
+php scripts/mutation-check.php --only=M4
+```
+
+The harness patches one safeguard at a time, runs the test that should catch it, prints the failure
+line, and restores the file. The results are recorded in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
 
 Frontend checks:
 
@@ -279,7 +290,8 @@ backend/
   database/migrations/           schema, with the unique idempotency indexes
   database/seeders/              13 tenants, managers, operator
   scripts/break-it.php           concurrency and replay harness
-  tests/                         32 tests / 168 assertions
+  scripts/mutation-check.php     mutation sensitivity harness for the test suite
+  tests/                         35 tests / 201 assertions
 frontend/
   src/pages/                     Kiosk, TenantDashboard, OperatorDashboard
   src/api.ts                     typed API client

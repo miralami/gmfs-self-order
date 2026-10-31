@@ -1,7 +1,7 @@
 # Test and Evaluation Evidence
 
 This file is the working evidence log for **BAB IV**. It contains the test matrix, the commands,
-the results recorded so far, the mutation checks still to run, and the UAT plan.
+the results recorded so far, the mutation-check results, and the UAT plan.
 
 Rule: every number in the thesis must be traceable to a command in this file. Do not copy a number
 from a previous run without re-running it.
@@ -10,7 +10,7 @@ from a previous run without re-running it.
 
 | Item | Value |
 | --- | --- |
-| Date of recorded runs | October 30, 2026 |
+| Date of recorded runs | October 30–31, 2026 |
 | OS | Windows 11 (development) |
 | PHP | 8.5 |
 | Laravel | 13.36 |
@@ -30,7 +30,7 @@ cd backend
 php artisan test
 ```
 
-Recorded result: **32 tests, 168 assertions, all passed, ~1.4 s**.
+Recorded result: **35 tests, 201 assertions, all passed, ~1.6 s**.
 
 | ID | Test | What it proves |
 | --- | --- | --- |
@@ -39,6 +39,7 @@ Recorded result: **32 tests, 168 assertions, all passed, ~1.4 s**.
 | T-CHK-3 | `::test_same_key_with_a_different_cart_is_rejected` | `409` on a different cart |
 | T-CHK-4 | `::test_checkout_requires_an_idempotency_key` | `422`, no checkout created |
 | T-CHK-5 | `::test_a_gateway_failure_leaves_an_unpaid_checkout_that_can_be_retried` | Checkout survives a charge failure; retry makes attempt 2 |
+| T-CHK-6 | `::test_a_three_tenant_cart_creates_three_orders_whose_totals_sum_to_the_checkout` | Three tenants → three orders, subtotals sum to the checkout |
 | T-SPL-1 | `::test_preparation_queue_is_blocked_until_payment_is_confirmed` | `422` before payment |
 | T-SPL-2 | `::test_paid_order_can_be_queued_for_preparation` | `paid → queued`, second attempt `422` |
 | T-PAY-1 | `PaymentNotificationTest::test_a_valid_settlement_notification_pays_the_checkout_and_splits_each_tenant_order` | `paid` + 80/20 stored, fee + share = total |
@@ -53,6 +54,8 @@ Recorded result: **32 tests, 168 assertions, all passed, ~1.4 s**.
 | T-PAY-10 | `::test_a_forged_notification_cannot_block_the_genuine_one` | Bad-signature delivery is stored, genuine one still pays |
 | T-PAY-11 | `::test_a_late_expire_event_cannot_close_a_paid_checkout` | Stale attempt expiry cannot flip a paid checkout |
 | T-PAY-12 | `::test_a_delayed_expire_for_a_cancelled_attempt_is_ignored` | Terminal attempt states are never rewritten |
+| T-PAY-13 | `::test_the_split_floors_the_fee_so_share_and_fee_sum_to_the_total` | 33,333 → fee 6,666 / share 26,667, no rounding drift |
+| T-PAY-14 | `::test_tiny_and_odd_amounts_still_split_into_whole_rupiah` | Rp 1, 7,777 and 50,001 all split to whole rupiah |
 | T-TEN-1 | `TenantIsolationTest::test_a_tenant_manager_only_sees_its_own_orders` | List scoping |
 | T-TEN-2 | `::test_guessing_another_tenants_order_id_returns_forbidden` | Read and queue both `403` |
 | T-TEN-3 | `::test_the_operator_sees_all_tenants_but_cannot_queue_orders` | Operator read-only |
@@ -176,28 +179,48 @@ table below must be filled with the PostgreSQL runs.
 | 3 | PostgreSQL | 100 | | | | | |
 | 4 | PostgreSQL, 2 app instances | 100 | | | | | |
 
-## 5. Mutation checks (to run, then record)
+## 5. Mutation checks (recorded)
 
 The claim "the safeguard is what prevents the bug" is only credible if removing it breaks a test.
-For each row: make the change on a scratch branch, run the named test, confirm it fails, revert.
+`backend/scripts/mutation-check.php` applies each mutation to the working tree, runs the named test,
+records the failure line, and restores the file in a `finally` block. It refuses to start if a
+pattern no longer matches, so a stale mutation fails loudly instead of silently doing nothing.
 
-| # | Mutation | Test that must fail |
-| --- | --- | --- |
-| M1 | Drop the unique index on `checkouts.idempotency_key` and remove the pre-check | `test_same_idempotency_key_returns_the_same_checkout` |
-| M2 | Drop unique `(checkout_id, tenant_id)` | `test_replayed_notifications_produce_one_paid_state_and_one_split` |
-| M3 | Drop unique `(gateway_order_id, transaction_status, status_code, signature_key)` | same |
-| M4 | Remove the signature verification in `applyNotification` | `test_an_invalid_signature_changes_nothing` |
-| M5 | Remove `visibleTo()` from `TenantOrderController::index` | `test_a_tenant_manager_only_sees_its_own_orders` |
-| M6 | Make `queuePreparation` skip the owner check | `test_guessing_another_tenants_order_id_returns_forbidden` |
-| M7 | Remove the `expires_at` check in `markPaid` | `test_a_checkout_that_has_expired_does_not_become_paid` |
-| M8 | Recompute the fee with `round()` instead of `intdiv()` | `test_the_operator_summary_uses_the_stored_eighty_twenty_split` |
-
-Suggested command:
+Command:
 
 ```bash
 cd backend
-php artisan test --filter=<test name>
+php scripts/mutation-check.php
+# one mutation only: php scripts/mutation-check.php --only=M4
 ```
+
+Recorded result (October 31, 2026): **8 of 9 mutations killed the test that is supposed to catch
+them.** M2 survives by design.
+
+| # | Mutation | Test | Result | Observed failure |
+| --- | --- | --- | --- | --- |
+| M1 | Remove the idempotency pre-check and the unique `checkouts.idempotency_key` index | `test_same_idempotency_key_returns_the_same_checkout` | **killed** | replay answered `201` instead of `200` |
+| M2 | Drop unique `(checkout_id, tenant_id)` | `test_replayed_notifications_produce_one_paid_state_and_one_split` | **survived** | the event index and the paid state catch the replay first |
+| M2b | Drop the tenant index, the event index and the `already_paid` guard together | `test_a_second_settlement_after_payment_is_recorded_as_already_paid` | **killed** | outcome became `late_payment`, not `already_paid` |
+| M3 | Drop the unique notification event tuple | `test_replayed_notifications_produce_one_paid_state_and_one_split` | **killed** | replay outcome `already_paid` instead of `duplicate` |
+| M4 | Accept every signature | `test_an_invalid_signature_changes_nothing` | **killed** | forged delivery answered `200` instead of `403` |
+| M5 | Remove `visibleTo()` from the tenant list | `test_a_tenant_manager_only_sees_its_own_orders` | **killed** | manager saw 2 orders instead of 1 |
+| M6 | Let `queuePreparation` skip the owner check | `test_guessing_another_tenants_order_id_returns_forbidden` | **killed** | cross-tenant queue reached the status check (`422`), not `403` |
+| M7 | Remove the `expires_at` check in `markPaid` | `test_a_checkout_that_has_expired_does_not_become_paid` | **killed** | expired checkout became `paid` |
+| M8 | Use `round()` instead of `intdiv()` for the fee | `test_the_split_floors_the_fee_so_share_and_fee_sum_to_the_total` | **killed** | fee became 6,667 instead of 6,666 |
+
+M2 is the honest exception and belongs in BAB V: the unique `(checkout_id, tenant_id)` index is
+defence in depth, not the only guard. The notification event index and the monotonic `paid` state
+prevent a second split before the tenant index is ever consulted; M2b removes all three and the
+suite fails. The index stays because it is the structural guarantee if the handler is ever changed.
+
+M8 previously survived because `SettlementTest` wrote the split in its own fixture helper, so it
+tested the read path, not the write path. The fix was to add `T-PAY-13`, which drives a real
+notification through `PaymentService`. This is the value of the harness: it found a test that was
+passing for the wrong reason.
+
+A mutation that survives is not automatically a missing test. Record it, explain which other layer
+caught the fault, and only add a test when the survivor shows that no layer did.
 
 ## 6. Mapping to the four BAB 1 black-box scenarios
 
