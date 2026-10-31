@@ -31,6 +31,7 @@ php artisan test                     # 38 tests / 219 assertions must stay green
 php artisan test --filter=PaymentNotificationTest
 vendor/bin/pint app config database routes tests
 php scripts/break-it.php http://127.0.0.1:8000 50
+php scripts/break-it.php http://127.0.0.1:8000,http://127.0.0.1:8001,http://127.0.0.1:8002,http://127.0.0.1:8003 100
 php scripts/mutation-check.php       # 8 of 9 safeguards are load-bearing
 
 # frontend

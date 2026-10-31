@@ -269,12 +269,31 @@ php scripts/break-it.php http://127.0.0.1:8000 50
 
 The harness picks two products from different tenants if no ids are passed, fires N parallel
 requests at both the checkout and the notification endpoint, then asserts the invariants against
-the database. SQLite only proves correctness, not concurrency: it serialises writers. On Linux/macOS
-you can raise the worker count with `PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8000`;
-Windows does not support that flag, so use WSL, Laragon/Apache, or a Linux host for the recorded
-run. The PHP build also needs `pdo_pgsql` enabled.
+the database.
 
-See [`docs/EVIDENCE.md`](docs/EVIDENCE.md) for the expected output and the thesis mapping.
+One `php artisan serve` process handles one request at a time on Windows
+(`PHP_CLI_SERVER_WORKERS` does not work there), so a single port serialises the requests. For real
+parallelism, start several ports and pass them comma-separated:
+
+```bash
+cd backend
+php artisan serve --port=8000
+php artisan serve --port=8001
+php artisan serve --port=8002
+php artisan serve --port=8003
+# in another shell
+php scripts/break-it.php \
+  http://127.0.0.1:8000,http://127.0.0.1:8001,http://127.0.0.1:8002,http://127.0.0.1:8003 100
+```
+
+On Linux/macOS you can instead raise the worker count with
+`PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8000`. The PHP build needs `pdo_pgsql` enabled
+(uncomment `extension=pdo_pgsql` in `php.ini`). SQLite only proves correctness, not concurrency: it
+serialises writers.
+
+Recorded runs (PostgreSQL 17.6, four processes, N = 50 and 100) and a single-process control run are
+in [`docs/EVIDENCE.md`](docs/EVIDENCE.md) section 4. The suite itself also passes unchanged on
+PostgreSQL (`docs/EVIDENCE.md` section 2.1).
 
 ## 9. Repository structure
 
@@ -306,8 +325,9 @@ docs/                            PRD, BSD, DIAGRAMS, API, EVIDENCE, BACKLOG, AI 
   check and state machine.
 - **No refund handling.** A payment that arrives after expiry is recorded as `late_payment` and
   left for manual handling in the Midtrans dashboard.
-- **Concurrency evidence requires PostgreSQL.** SQLite serialises writers, so the parallel-request
-  harness proves nothing there.
+- **Concurrency evidence needs more than one server process.** SQLite serialises writers, and a
+  single `php artisan serve` handles one request at a time on Windows. The recorded evidence uses
+  PostgreSQL plus four ports (see section 8).
 - **Demo bearer tokens.** There is no password login UI; tokens come from the seeder. Acceptable
   for an academic prototype, not for production.
 - **No kitchen lifecycle beyond `queued`.** `preparing`/`ready`/`collected` were dropped from the

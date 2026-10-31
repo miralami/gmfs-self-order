@@ -30,8 +30,9 @@ The deliverable is a working prototype plus measured evidence, not a production 
 - Backend: Laravel 13 REST API, versioned under `/api/v1`, modular monolith, PHP 8.5.
 - Frontend: React 19 + TypeScript + Vite 8 SPA, hash routing, no router dependency.
 - Database: PostgreSQL 16+ for real runs and for concurrency evidence. The automated test suite
-  uses in-memory SQLite for speed; concurrency tests must run on PostgreSQL because SQLite
-  serialises writers and would hide the race.
+  defaults to in-memory SQLite for speed and is re-run on PostgreSQL before release; concurrency
+  tests must run on PostgreSQL because SQLite serialises writers and would hide the race. PostgreSQL
+  17.6 has been used for both (see `EVIDENCE.md` sections 2.1 and 4).
 - Payments: **Midtrans Core API, QRIS only**, sandbox environment.
 - Deployment target: one affordable VPS; no queue worker is required in the MVP.
 

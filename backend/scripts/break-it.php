@@ -10,11 +10,16 @@ declare(strict_types=1);
  * machine together.
  *
  * Usage:
- *   php scripts/break-it.php [base-url] [parallel] [productIdA] [productIdB]
+ *   php scripts/break-it.php [base-url[,base-url...]] [parallel] [productIdA] [productIdB]
  *
  * Example:
  *   php scripts/break-it.php http://127.0.0.1:8000 50
+ *   php scripts/break-it.php http://127.0.0.1:8000,http://127.0.0.1:8001 100
  *   php scripts/break-it.php http://127.0.0.1:8000 100 1 4
+ *
+ * Pass several base URLs to spread the parallel requests over several PHP
+ * processes. One `php artisan serve` on Windows handles one request at a time,
+ * so a single URL serialises the requests and proves nothing about concurrency.
  *
  * Requirements:
  *   - The API must be running and reachable.
@@ -38,7 +43,15 @@ require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-$baseUrl = rtrim($argv[1] ?? 'http://127.0.0.1:8000', '/');
+$baseUrls = array_values(array_filter(array_map(
+    static fn (string $url): string => rtrim(trim($url), '/'),
+    explode(',', $argv[1] ?? 'http://127.0.0.1:8000'),
+)));
+
+if ($baseUrls === []) {
+    $baseUrls = ['http://127.0.0.1:8000'];
+}
+
 $parallel = max(2, (int) ($argv[2] ?? 50));
 $productIds = array_values(array_filter(array_map('intval', array_slice($argv, 3))));
 
@@ -47,6 +60,15 @@ $failures = 0;
 function line(string $text = ''): void
 {
     fwrite(STDOUT, $text.PHP_EOL);
+}
+
+/**
+ * Pick the base URL for a request index so the load is spread over every
+ * server process.
+ */
+function baseUrlFor(int $index, array $baseUrls): string
+{
+    return $baseUrls[$index % count($baseUrls)];
 }
 
 function check(string $label, bool $passed, string $detail = ''): void
@@ -128,12 +150,19 @@ function jsonBody(string $body): array
 // ---------------------------------------------------------------------------
 
 line('GMFS break-it harness');
-line('target: '.$baseUrl.'   parallel: '.$parallel.'   db: '.config('database.default'));
+line('targets: '.implode(', ', $baseUrls).'   parallel: '.$parallel.'   db: '.config('database.default'));
 line();
 
 if (config('database.default') !== 'pgsql') {
     line('WARNING: the database is not PostgreSQL. Parallel writes may fail with');
     line('         "database is locked" and the result is not valid thesis evidence.');
+    line();
+}
+
+if (count($baseUrls) === 1) {
+    line('WARNING: one target only. On Windows `php artisan serve` handles one request at a');
+    line('         time, so the requests are serialised. Start several ports and pass a');
+    line('         comma-separated list for real concurrency.');
     line();
 }
 
@@ -179,16 +208,20 @@ $payload = json_encode(['items' => $items], JSON_THROW_ON_ERROR);
 
 line('Phase 1: '.$parallel.' identical POST /checkouts with one Idempotency-Key');
 
-$requests = array_fill(0, $parallel, [
-    'url' => $baseUrl.'/api/v1/checkouts',
-    'method' => 'POST',
-    'headers' => [
-        'Accept: application/json',
-        'Content-Type: application/json',
-        'Idempotency-Key: '.$idempotencyKey,
-    ],
-    'body' => $payload,
-]);
+$requests = [];
+
+for ($index = 0; $index < $parallel; $index++) {
+    $requests[] = [
+        'url' => baseUrlFor($index, $baseUrls).'/api/v1/checkouts',
+        'method' => 'POST',
+        'headers' => [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'Idempotency-Key: '.$idempotencyKey,
+        ],
+        'body' => $payload,
+    ];
+}
 
 $started = microtime(true);
 $responses = parallelRequests($requests);
@@ -239,7 +272,7 @@ line('Phase 2: the same key with a different cart must be rejected');
 
 $different = json_encode(['items' => [['product_id' => $productIds[0], 'quantity' => 2]]], JSON_THROW_ON_ERROR);
 $conflict = parallelRequests([[
-    'url' => $baseUrl.'/api/v1/checkouts',
+    'url' => baseUrlFor(0, $baseUrls).'/api/v1/checkouts',
     'method' => 'POST',
     'headers' => [
         'Accept: application/json',
@@ -295,12 +328,15 @@ $notification = [
 $notification['signature_key'] = $gateway->signatureKey($attempt->gateway_order_id, '200', $grossAmount);
 $notificationBody = json_encode($notification, JSON_THROW_ON_ERROR);
 
-$responses = parallelRequests(array_fill(0, $parallel, [
-    'url' => $baseUrl.'/api/v1/payments/midtrans/notification',
-    'method' => 'POST',
-    'headers' => ['Accept: application/json', 'Content-Type: application/json'],
-    'body' => $notificationBody,
-]));
+$responses = parallelRequests(array_map(
+    static fn (int $index): array => [
+        'url' => baseUrlFor($index, $baseUrls).'/api/v1/payments/midtrans/notification',
+        'method' => 'POST',
+        'headers' => ['Accept: application/json', 'Content-Type: application/json'],
+        'body' => $notificationBody,
+    ],
+    range(0, $parallel - 1),
+));
 
 $outcomes = [];
 $errors = 0;

@@ -15,11 +15,11 @@ from a previous run without re-running it.
 | PHP | 8.5 |
 | Laravel | 13.36 |
 | Node | 24.18 |
-| Database (test suite) | SQLite in-memory |
+| Database (test suite) | SQLite in-memory (default) and PostgreSQL 17.6 (second run, section 2.1) |
 | Database (demo run) | SQLite file, `backend/database/database.sqlite` |
-| Database (required for concurrency evidence) | PostgreSQL 16+ (not yet run — see section 5) |
+| Database (concurrency evidence) | PostgreSQL 17.6 on port 5433, four `php artisan serve` processes (section 4) |
 | Payment gateway | Midtrans Core API, sandbox, QRIS |
-| Programme | `php artisan test`, `php scripts/break-it.php` |
+| Programme | `php artisan test`, `php scripts/break-it.php`, `php scripts/mutation-check.php` |
 
 ## 2. Automated suite
 
@@ -89,6 +89,28 @@ npm run lint
 
 Recorded: `tsc -b && vite build` succeeded, 49 modules, `dist/` written (≈262 kB JS, 10.9 kB CSS);
 `oxlint` reports no findings.
+
+### 2.1 The same suite on PostgreSQL 17.6
+
+The default suite runs on SQLite because it is fast. That alone would not prove the schema works on
+the database the thesis targets, so the whole suite was re-run against a real PostgreSQL 17.6
+instance with no code changes:
+
+```bash
+# portable PostgreSQL 17.6, port 5433, trust auth on 127.0.0.1 only
+initdb -D <data-dir> -U postgres --auth=trust --encoding=UTF8 --locale=C
+pg_ctl -D <data-dir> -o "-p 5433 -c listen_addresses=127.0.0.1" -l pg.log start
+createdb -h 127.0.0.1 -p 5433 -U postgres gmfs_test
+
+cd backend
+# environment variables win over phpunit.xml, so the suite uses PostgreSQL
+DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5433 DB_DATABASE=gmfs_test \
+  DB_USERNAME=postgres DB_PASSWORD= php artisan test
+```
+
+Recorded result (October 31, 2026): **38 tests, 219 assertions, all passed, ~4.0 s** on PostgreSQL
+17.6, after `RefreshDatabase` created 17 tables from the 12 migrations. The suite is therefore not
+SQLite-specific: the unique indexes, `json` columns and timestamp handling behave the same on both.
 
 ## 3. CLI demonstration (offline, no tunnel)
 
@@ -169,15 +191,27 @@ are also the four tasks the examiner can repeat by hand in the demo script (READ
 
 ## 4. Concurrency and replay harness
 
-Command:
+The harness fires real HTTP requests, not service calls, so the evidence covers routing, middleware,
+the unique indexes, the row locks and the state machine together.
+
+### 4.1 Why several server processes
+
+`php artisan serve` uses PHP's built-in web server. On Windows it handles one request at a time
+(`PHP_CLI_SERVER_WORKERS` does not work there), so a single port serialises the requests and proves
+nothing about concurrency. The harness therefore accepts a comma-separated list of base URLs and
+spreads the requests round-robin over several server processes that share one database:
 
 ```bash
 cd backend
-# terminal 1 (PostgreSQL recommended; PHP_CLI_SERVER_WORKERS does not work on Windows)
+# four terminals, one process each; all point at the same PostgreSQL database
 php artisan serve --port=8000
+php artisan serve --port=8001
+php artisan serve --port=8002
+php artisan serve --port=8003
 
-# terminal 2
-php scripts/break-it.php http://127.0.0.1:8000 50
+# fifth terminal
+php scripts/break-it.php \
+  http://127.0.0.1:8000,http://127.0.0.1:8001,http://127.0.0.1:8002,http://127.0.0.1:8003 100
 ```
 
 The harness:
@@ -188,7 +222,10 @@ The harness:
 4. fires N signed `settlement` notifications at the real HTTP endpoint,
 5. asserts one notification row, one paid state, one child order per tenant, and exact split sums.
 
-Recorded run (SQLite, N = 8, October 30, 2026): **PASS**, 14/14 checks.
+### 4.2 Recorded runs
+
+Recorded run (SQLite, N = 8, October 30, 2026): **PASS**, 14/14 checks. This is a correctness check,
+not concurrency evidence: SQLite serialises writers.
 
 ```
 statuses: {"200":7,"201":1}   distinct checkout references: 1
@@ -198,15 +235,54 @@ one notification row, checkout paid, 2 of 2 child orders paid
 split sums back to the checkout total — 84000 + 21000 vs 105000
 ```
 
-This run is a correctness check, not concurrency evidence: SQLite serialises writers. The thesis
-table below must be filled with the PostgreSQL runs.
+Recorded run (PostgreSQL 17.6, 4 server processes, N = 50, October 31, 2026): **PASS**, 14/14 checks.
 
-| Run | Database | N | Distinct checkouts | Paid outcomes | Notification rows | Result | Date |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | SQLite | 8 | 1 | 1 | 1 | PASS | 2026-10-30 |
-| 2 | PostgreSQL | 50 | | | | | |
-| 3 | PostgreSQL | 100 | | | | | |
-| 4 | PostgreSQL, 2 app instances | 100 | | | | | |
+```
+statuses: {"200":49,"201":1}   wall time: 1199 ms
+distinct checkout references: 1
+different cart returns 409
+outcomes: {"duplicate":49,"paid":1}
+one notification row, checkout paid, 2 of 2 child orders paid
+split sums back to the checkout total — 84000 + 21000 vs 105000
+```
+
+Recorded run (PostgreSQL 17.6, 4 server processes, N = 100, October 31, 2026): **PASS**, 14/14
+checks.
+
+```
+statuses: {"200":99,"201":1}   wall time: 2173 ms
+distinct checkout references: 1
+different cart returns 409
+outcomes: {"duplicate":99,"paid":1}
+one notification row, checkout paid, 2 of 2 child orders paid
+split sums back to the checkout total — 84000 + 21000 vs 105000
+```
+
+Control run (PostgreSQL 17.6, **1** server process, N = 100, October 31, 2026): **PASS**, but the run
+serialises. The wall time is the point:
+
+```
+statuses: {"200":99,"201":1}   wall time: 6285 ms
+outcomes: {"duplicate":99,"paid":1}
+```
+
+Same work, 6.3 s on one process versus 2.2 s on four. The four-process run is therefore genuinely
+parallel, and the invariant still holds: 100 simultaneous identical submissions produced exactly one
+checkout row, exactly one charge attempt and exactly one paid state with one 80/20 split.
+
+Summary table:
+
+| Run | Database | Processes | N | Distinct checkouts | Paid | Duplicate | Notification rows | Wall time | Result | Date |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | SQLite | 1 | 8 | 1 | 1 | 7 | 1 | — | PASS | 2026-10-30 |
+| 2 | PostgreSQL 17.6 | 4 | 50 | 1 | 1 | 49 | 1 | 1,199 ms | PASS | 2026-10-31 |
+| 3 | PostgreSQL 17.6 | 4 | 100 | 1 | 1 | 99 | 1 | 2,173 ms | PASS | 2026-10-31 |
+| 4 | PostgreSQL 17.6 | 1 | 100 | 1 | 1 | 99 | 1 | 6,285 ms | PASS (serialised control) | 2026-10-31 |
+
+What this supports in the thesis: **G2, exactly-once payment effect**. The duplicate rate is not zero
+— 99 of 100 deliveries were judged duplicates — yet the money moved once. The unique
+`checkouts.idempotency_key` index and the unique notification event tuple are what decided the race;
+the losers did not error, they re-read the winner's row and answered `200`.
 
 ## 5. Mutation checks (recorded)
 
@@ -257,7 +333,7 @@ caught the fault, and only add a test when the survivor shows that no layer did.
 | --- | --- |
 | S1 — one cart across tenants, one payment | T-CHK-1, T-SPL-2, CLI demonstration, UAT task 1–2 |
 | S2 — payment confirmed before preparation | T-SPL-1, T-PAY-1, UAT task 2–3 |
-| S3 — duplicate/retried payment does not duplicate orders | T-PAY-2, T-PAY-6, concurrency harness, UAT task 5 |
+| S3 — duplicate/retried payment does not duplicate orders | T-PAY-2, T-PAY-6, section 4 PostgreSQL runs (N = 50 and 100 on four processes), UAT task 5 |
 | S4 — tenant only sees its own orders; operator sees settlement | T-TEN-1…6, T-SPL-3, UAT task 4–5 |
 
 ## 7. UAT plan
@@ -306,9 +382,11 @@ in the food court?"
 ## 8. Limitations to state in BAB IV/V
 
 - Sandbox gateway only; no production keys, no real settlement to bank accounts.
-- The automated suite runs on SQLite; row-lock behaviour is only truly exercised on PostgreSQL.
-- The concurrency harness on a single machine and a single database is not a load test.
+- The suite runs on both SQLite and PostgreSQL 17.6, but PostgreSQL was exercised on one machine with
+  four app processes, not on a cluster; row locking is proven, network partitions are not.
+- The concurrency harness is not a load test: four processes and two products are a correctness probe,
+  not a capacity measurement.
 - UAT uses a small convenience sample, so results describe these participants, not the population.
 - No refund, payout, tax or kitchen-hardware path was tested because none is implemented.
-- Windows cannot use `PHP_CLI_SERVER_WORKERS`; true parallel serving needs WSL, Laragon/Apache, or
-  a Linux host.
+- Windows cannot use `PHP_CLI_SERVER_WORKERS`; parallel serving is achieved with four separate
+  `php artisan serve` processes on different ports behind the same database.

@@ -253,10 +253,13 @@ zones: kiosk screens, styling, seed data, dashboards.
   a public HTTPS tunnel.
 - **Iteration 4, dashboards prototype — done.** Tenant order list and queue-for-preparation action,
   operator settlement summary (`SettlementTest`).
-- **Iteration 5, evidence — in progress.** The test matrix, the recorded demo run and the harness are
-  in `docs/EVIDENCE.md`; `scripts/mutation-check.php` reports 8 of 9 mutations killed and explains the
-  survivor. The PostgreSQL concurrency runs are still missing because the Windows PHP build has no
-  `pdo_pgsql`.
+- **Iteration 5, evidence — done, except UAT.** The test matrix, the recorded demo run, the black-box
+  table (BB-01 to BB-14) and the harness are in `docs/EVIDENCE.md`. `scripts/mutation-check.php`
+  reports 8 of 9 mutations killed and explains the survivor. The whole suite also passes on
+  PostgreSQL 17.6 (section 2.1 there), and `scripts/break-it.php` was run against four app processes
+  sharing one PostgreSQL database at N = 50 and N = 100: one checkout, one paid state, one
+  notification row, one stored split, zero server errors. A single-process control run is recorded
+  to show the four-process run is genuinely parallel.
 - **UAT — not started.** Needs the manager, tenant representatives, a room and a date.
 - **Freeze — done for documentation.** README, diagrams, run instructions and limitations are
   written. BAB IV/V material is collected, but the chapters are not drafted.
@@ -291,10 +294,9 @@ Report BAB V results as black-box test-case tables built around the four critica
 - Mutation checks: remove each unique constraint or guard in turn and confirm that its test fails.
 - Crash recovery between the payment attempt and the charge, only if a reconciliation job is approved.
 
-**Recorded status (October 31, 2026).** `php artisan test` → **38 tests / 219 assertions passing**.
-`scripts/mutation-check.php` → **8 of 9 mutations killed**; the survivor (removing only the unique
-`(checkout_id, tenant_id)` index) is explained below. `scripts/break-it.php` at N = 8 on SQLite →
-14 of 14 functional checks pass; this is correctness, not concurrency evidence.
+**Recorded status (October 31, 2026).** `php artisan test` → **38 tests / 219 assertions passing** on
+SQLite and again on PostgreSQL 17.6. `scripts/mutation-check.php` → **8 of 9 mutations killed**; the
+survivor (removing only the unique `(checkout_id, tenant_id)` index) is explained below.
 
 | Scenario | Test class / command | Status |
 | --- | --- | --- |
@@ -304,7 +306,9 @@ Report BAB V results as black-box test-case tables built around the four critica
 | T-PAY replay, amount, expiry, signature, reconciliation | `PaymentNotificationTest` | done |
 | T-SET 80/20 stored split, edge amounts, unpaid excluded | `SettlementTest` | done |
 | Mutation checks M1–M8 | `php scripts/mutation-check.php` | 8 killed, 1 survivor |
-| Parallel duplicate submissions on PostgreSQL | `php scripts/break-it.php <url> 50` | **not run** |
+| Same suite on PostgreSQL 17.6 | `DB_CONNECTION=pgsql php artisan test` | 38/219 pass |
+| Parallel duplicate submissions, PostgreSQL, 4 processes | `php scripts/break-it.php <urls> 50` and `100` | **done, PASS** |
+| Parallel duplicate submissions, single process | `php scripts/break-it.php <url> 100` | control run, PASS but serialised |
 | UAT | `docs/EVIDENCE.md` section 7 | **not started** |
 
 The mutation survivor is deliberate evidence, not a gap: dropping the unique

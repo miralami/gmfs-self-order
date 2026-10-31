@@ -83,5 +83,39 @@ wrong reason.
 
 **Remaining risk.** The rounding direction is still a student decision: the code floors the 20% fee
 (33,333 → 26,667 / 6,666); the earlier handover draft floored the 80% tenant share (26,666 / 6,667).
-Both sum exactly, but the thesis must state one. PostgreSQL concurrency evidence and UAT are still
-outstanding.
+Both sum exactly, but the thesis must state one. UAT is still outstanding.
+
+## 2026-10-31 — PostgreSQL concurrency evidence
+
+**Why.** `G2, exactly-once payment effect` was supported only by a serialised SQLite run. The thesis
+evidence table had empty PostgreSQL rows, and the machine had no PostgreSQL at all.
+
+**Changed.**
+
+- `scripts/break-it.php` now accepts a comma-separated list of base URLs and spreads requests
+  round-robin over them, because one `php artisan serve` process handles one request at a time on
+  Windows and would serialise the run.
+- Standalone PostgreSQL 17.6 (portable binaries, port 5433, `trust` auth on `127.0.0.1` only) and
+  `pdo_pgsql` enabled in `php.ini`; no system service, no admin rights, nothing installed into the
+  repository.
+- The whole suite was re-run on PostgreSQL: **38 tests / 219 assertions pass**, 17 tables created
+  from 12 migrations.
+- Harness runs recorded with four server processes on one database: N = 50 and N = 100, plus a
+  single-process N = 100 control run.
+- `docs/EVIDENCE.md` sections 1, 2.1, 4 and 8, `README.md` section 8, `docs/PRD.md` database
+  decision, `AGENTS.md` commands and the handover phase/status tables updated to match.
+
+**Result.**
+
+| Processes | N | Distinct checkouts | Paid | Duplicate | Notification rows | Wall time |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4 | 50 | 1 | 1 | 49 | 1 | 1,199 ms |
+| 4 | 100 | 1 | 1 | 99 | 1 | 2,173 ms |
+| 1 | 100 | 1 | 1 | 99 | 1 | 6,285 ms |
+
+**Finding.** The duplicate rate is 99 of 100, yet the money moved once. The wall-time gap (6.3 s on
+one process, 2.2 s on four) is the evidence that the four-process run is genuinely parallel, so the
+result is a race that the unique indexes resolved, not a serialised queue that never raced.
+
+**Remaining risk.** UAT has not run. The live Midtrans charge and webhook are still unverified
+because there is no sandbox key or public HTTPS tunnel.
