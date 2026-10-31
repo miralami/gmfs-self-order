@@ -315,7 +315,7 @@ M2b does break the test. That is the layered defence the thesis claims.
 
 Participants: the real GMFS manager and tenant representatives (number \[OPEN\]). Instrument \[OPEN\]: a scenario-based task list plus a Likert questionnaire on usefulness, ease of use and fit with their workflow. The System Usability Scale is a common choice, but pick what your lecturer expects. Record the date, participants, tasks, scores and comments, with consent and anonymized names.
 
-**Evidence format for BAB V.** Test-case table columns: ID, scenario, preconditions, input, expected result, actual result, status. Keep the scripts in the repo so examiners can re-run them with one command. State the limitations honestly: sandbox only, one database, one VPS, no load or advanced security testing.
+**Evidence format for BAB V.** Test-case table columns: ID, scenario, preconditions, input, expected result, actual result, status. Keep the scripts in the repo so examiners can re-run them with one command. State the limitations honestly: sandbox only, one database, one VPS, no load or advanced security testing. A filled table with 14 rows (BB-01 to BB-14) is in `docs/EVIDENCE.md` section 3.5.
 
 ## 12. Thesis mapping (implementation side)
 

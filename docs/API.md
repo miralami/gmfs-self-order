@@ -230,6 +230,8 @@ Possible `outcome` values:
 | `invalid_signature` | Signature check failed, nothing changed |
 | `denied` / `cancelled` / `expired` / `failed` | Attempt-level terminal state |
 | `already_settled` | Attempt was already settled |
+| `awaiting_fraud_review` | `capture`/`settlement` without `fraud_status = accept`; nothing is paid |
+| `ignored` | Delivered status or attempt state carries no transition |
 | `malformed` | Missing `order_id` or `transaction_status` |
 
 ---

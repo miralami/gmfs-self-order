@@ -138,6 +138,32 @@ Operator settlement (`Authorization: Bearer operator-token`):
 | Bakso Pak Kumis | 1 | 35,000 | 28,000 | 7,000 |
 | **Total** | **2** | **105,000** | **84,000** | **21,000** |
 
+## 3.5 Black-box test-case table (BAB V format)
+
+Every row below was exercised against the running API on October 30–31, 2026. `Actual` is what the
+endpoint returned, not what the code intends. The test name is the automated regression that keeps
+the behaviour fixed.
+
+| ID | Scenario | Preconditions | Input | Expected | Actual | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| BB-01 | Cross-tenant cart, one payment | 13 tenants seeded, empty cart | 2 items from 2 tenants, `POST /checkouts` | 1 checkout, 2 child orders, total = sum | checkout 105,000, 2 orders (70,000 + 35,000) | pass |
+| BB-02 | Three-tenant cart | 3 tenants with products | 3 items, `POST /checkouts` | 3 child orders, totals sum to checkout | `T-CHK-6`, 193,000 = 100,000 + 60,000 + 33,000 | pass |
+| BB-03 | Queue before payment | Unpaid child order exists | `POST /tenant/orders/{id}/queue-preparation` | `422`, no state change | `422` | pass |
+| BB-04 | Queue after payment | Paid child order exists | same endpoint | `200`, status `queued` | `queued` | pass |
+| BB-05 | Tenant sees only own orders | Two tenants have one paid order each | `GET /tenant/orders` with each manager token | 1 row per token | 1 row each (`GMFS-YVNE5M`, `GMFS-5TA8R8`) | pass |
+| BB-06 | Guessed cross-tenant id | Manager A, order of tenant B | `GET /tenant/orders/{B}` | `403` | `403` | pass |
+| BB-07 | Operator settlement | Two paid orders | `GET /operator/settlements` | totals reconcile | gross 105,000 = 84,000 + 21,000 | pass |
+| BB-08 | Duplicate notification | Pending attempt | same signed body × 3 | one paid state, one row, one split | `paid`, `duplicate`, `duplicate`; 1 row | pass |
+| BB-09 | Forged signature | Pending attempt | bad `signature_key` | `403`, no state change | `403`, checkout stays `unpaid` | pass |
+| BB-10 | Amount mismatch | Pending attempt | `gross_amount` ≠ attempt amount | flagged, not paid | `amount_mismatch`, `unpaid` | pass |
+| BB-11 | Payment after expiry | Checkout past `expires_at` | valid settlement notification | `late_payment`, never paid | `late_payment` | pass |
+| BB-12 | Same key, same cart | Checkout already created | repeat `POST /checkouts` | `200` original, no new charge | same reference, 1 attempt | pass |
+| BB-13 | Same key, different cart | Checkout already created | different items, same key | `409` | `409` | pass |
+| BB-14 | Seeded catalog | Fresh seed | `GET /catalog/tenants` | 13 tenants, integer prices | 13 tenants | pass |
+
+Screenshots or console excerpts go beside this table in BAB V. Rows BB-01, BB-05, BB-06 and BB-07
+are also the four tasks the examiner can repeat by hand in the demo script (README section 6).
+
 ## 4. Concurrency and replay harness
 
 Command:
