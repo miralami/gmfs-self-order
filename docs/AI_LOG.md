@@ -32,7 +32,7 @@ tenant order lifecycle, and evaluate with black-box tests plus UAT.
 - Rewrote the documentation set: `docs/PRD.md`, `docs/BSD.md`, `docs/API.md`, `docs/EVIDENCE.md`,
   `docs/DIAGRAMS.md`, `README.md`, `Handover Self-Order Kiosk Thesis Project.md`, root `AGENTS.md`.
 
-**Checks.** `php artisan test` → 35 tests / 201 assertions passing. `vendor/bin/pint` clean.
+**Checks.** `php artisan test` → 38 tests / 219 assertions passing. `vendor/bin/pint` clean.
 `npm run build` clean. `break-it.php` at N = 8 on SQLite → 14/14 checks pass. Manual CLI demo:
 checkout 105,000 split into 70,000 + 35,000; settlement 84,000 / 21,000.
 
@@ -73,7 +73,7 @@ the tests pass.
   `Idempotency-Key`, signature inside the replay key, state names, phase status, and open items.
 - Recorded the mutation results in `docs/EVIDENCE.md`.
 
-**Checks.** `php artisan test` → 35 tests / 201 assertions passing. `php scripts/mutation-check.php`
+**Checks.** `php artisan test` → 38 tests / 219 assertions passing. `php scripts/mutation-check.php`
 → 8 of 9 mutations killed; M2 survives by design because two other layers catch the duplicate first.
 
 **Finding.** M8 initially survived: `SettlementTest` computed the split in its own fixture, so it

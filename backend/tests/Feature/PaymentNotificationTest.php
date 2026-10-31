@@ -276,6 +276,51 @@ class PaymentNotificationTest extends TestCase
         $this->assertSame(PaymentAttempt::STATUS_CANCELLED, $attempt->fresh()->status);
     }
 
+    public function test_a_late_pending_notification_cannot_unpay_a_settled_checkout(): void
+    {
+        $attempt = $this->placeSingleTenantCheckout(amount: 50000);
+        $checkout = $attempt->checkout;
+
+        $this->postJson('/api/v1/payments/midtrans/notification', $this->notificationPayload($attempt))
+            ->assertOk()
+            ->assertJsonPath('outcome', 'paid');
+
+        // Out of order: the pending event arrives after the settlement.
+        $this->postJson('/api/v1/payments/midtrans/notification', $this->notificationPayload($attempt, 'pending', '201'))
+            ->assertOk()
+            ->assertJsonPath('outcome', 'pending');
+
+        $this->assertSame('paid', $checkout->fresh()->status);
+        $this->assertSame(TenantOrder::STATUS_PAID, $checkout->tenantOrders()->firstOrFail()->status);
+    }
+
+    public function test_a_challenged_capture_does_not_pay_the_checkout(): void
+    {
+        $attempt = $this->placeSingleTenantCheckout(amount: 50000);
+        $payload = $this->notificationPayload($attempt, 'capture', '200');
+        $payload['fraud_status'] = 'challenge';
+
+        $this->postJson('/api/v1/payments/midtrans/notification', $payload)
+            ->assertOk()
+            ->assertJsonPath('outcome', 'awaiting_fraud_review');
+
+        $this->assertSame('unpaid', $attempt->checkout->fresh()->status);
+        $this->assertSame(PaymentAttempt::STATUS_PENDING, $attempt->fresh()->status);
+    }
+
+    public function test_a_gateway_denial_marks_the_attempt_denied_and_leaves_the_checkout_unpaid(): void
+    {
+        $attempt = $this->placeSingleTenantCheckout(amount: 50000);
+
+        $this->postJson('/api/v1/payments/midtrans/notification', $this->notificationPayload($attempt, 'deny', '202'))
+            ->assertOk()
+            ->assertJsonPath('outcome', 'denied');
+
+        $this->assertSame(PaymentAttempt::STATUS_DENIED, $attempt->fresh()->status);
+        $this->assertSame('unpaid', $attempt->checkout->fresh()->status);
+        $this->assertSame(TenantOrder::STATUS_UNPAID, $attempt->checkout->tenantOrders()->firstOrFail()->status);
+    }
+
     private function placeSingleTenantCheckout(int $amount, string $slug = 'tenant-one'): PaymentAttempt
     {
         $this->fakeSuccessfulCharge();

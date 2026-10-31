@@ -30,7 +30,7 @@ cd backend
 php artisan test
 ```
 
-Recorded result: **35 tests, 201 assertions, all passed, ~1.6 s**.
+Recorded result: **38 tests, 219 assertions, all passed, ~1.7 s**.
 
 | ID | Test | What it proves |
 | --- | --- | --- |
@@ -56,6 +56,9 @@ Recorded result: **35 tests, 201 assertions, all passed, ~1.6 s**.
 | T-PAY-12 | `::test_a_delayed_expire_for_a_cancelled_attempt_is_ignored` | Terminal attempt states are never rewritten |
 | T-PAY-13 | `::test_the_split_floors_the_fee_so_share_and_fee_sum_to_the_total` | 33,333 → fee 6,666 / share 26,667, no rounding drift |
 | T-PAY-14 | `::test_tiny_and_odd_amounts_still_split_into_whole_rupiah` | Rp 1, 7,777 and 50,001 all split to whole rupiah |
+| T-PAY-15 | `::test_a_late_pending_notification_cannot_unpay_a_settled_checkout` | Out-of-order `pending` after `settlement` changes nothing |
+| T-PAY-16 | `::test_a_challenged_capture_does_not_pay_the_checkout` | `fraud_status = challenge` → `awaiting_fraud_review`, unpaid |
+| T-PAY-17 | `::test_a_gateway_denial_marks_the_attempt_denied_and_leaves_the_checkout_unpaid` | `deny` is attempt-level, money untouched |
 | T-TEN-1 | `TenantIsolationTest::test_a_tenant_manager_only_sees_its_own_orders` | List scoping |
 | T-TEN-2 | `::test_guessing_another_tenants_order_id_returns_forbidden` | Read and queue both `403` |
 | T-TEN-3 | `::test_the_operator_sees_all_tenants_but_cannot_queue_orders` | Operator read-only |

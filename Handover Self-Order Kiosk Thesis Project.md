@@ -38,7 +38,7 @@ Thesis -> Project -> Tasks. Every task must trace to a project requirement, and 
 - **Project.** GMFS Self-Order: a web self-order system for the Gajah Mada Food Street food court in Jakarta Pusat, with 13 tenants. A customer puts items from several tenants into one cart, checks out once and pays centrally. The checkout is split into one order per tenant, and repeated payment notifications are handled idempotently. Tenants have a dashboard to queue paid orders for preparation. The operator has a dashboard with a cross-tenant settlement summary (80% tenant, 20% manager).
 - **Focus of this document.** The implementation and evidence side of the thesis, not the thesis prose.
 - **Current status (October 31, 2026).** The MVP is built and committed on `main`: Laravel API, React
-  SPA, Midtrans QRIS adapter, 13-tenant seeder, 35 tests / 201 assertions green. Sections 6, 7, 9, 10
+  SPA, Midtrans QRIS adapter, 13-tenant seeder, 38 tests / 219 assertions green. Sections 6, 7, 9, 10
   and 11 below have been reconciled from "proposal" to "as built"; what is genuinely still open is in
   Section 15. `docs/PRD.md`, `docs/BSD.md`, `docs/API.md`, `docs/DIAGRAMS.md` and `docs/EVIDENCE.md`
   describe the same system and win over this document where they are more specific.
@@ -98,7 +98,8 @@ For the defense: customers shop across tenants, so the catalog and checkout are 
 ## 6. Architecture (as built)
 
 - Modular monolith, one deployment unit. Modules: Catalog, Tenancy, Cart/Quote, Checkout, Payments,
-  Tenant orders, Settlements. The mapping from module to folder is in Section 6 of `docs/BSD.md`.
+  Tenant orders, Settlements. The folder layout is in README section 9 and the design detail in
+  `docs/BSD.md`.
 - Tenancy model: shared database, shared schema, a tenant discriminator column (`tenant_id`).
   Enforcement is **explicit**, not a global scope: every tenant-order query starts with
   `TenantOrder::query()->visibleTo($user)` and `TenantOrderPolicy` repeats the check. A fail-closed
@@ -290,7 +291,7 @@ Report BAB V results as black-box test-case tables built around the four critica
 - Mutation checks: remove each unique constraint or guard in turn and confirm that its test fails.
 - Crash recovery between the payment attempt and the charge, only if a reconciliation job is approved.
 
-**Recorded status (October 31, 2026).** `php artisan test` → **35 tests / 201 assertions passing**.
+**Recorded status (October 31, 2026).** `php artisan test` → **38 tests / 219 assertions passing**.
 `scripts/mutation-check.php` → **8 of 9 mutations killed**; the survivor (removing only the unique
 `(checkout_id, tenant_id)` index) is explained below. `scripts/break-it.php` at N = 8 on SQLite →
 14 of 14 functional checks pass; this is correctness, not concurrency evidence.

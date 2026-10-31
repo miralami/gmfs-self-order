@@ -166,7 +166,7 @@ Full request/response examples are in [`API.md`](API.md).
 - [x] Seeder creates 13 tenants, one manager per tenant, and one operator.
 - [x] Removing a safeguard breaks the test that is supposed to catch it: 8 of 9 mutations killed,
       with the survivor explained in [`EVIDENCE.md`](EVIDENCE.md).
-- [x] All of the above is covered by the automated suite (35 tests, 201 assertions).
+- [x] All of the above is covered by the automated suite (38 tests, 219 assertions).
 
 ## 9. Evaluation
 
