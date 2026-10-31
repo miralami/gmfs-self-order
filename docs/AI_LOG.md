@@ -81,9 +81,9 @@ never exercised `PaymentService`. The new `T-PAY-13` drives a real notification 
 recorded in `docs/EVIDENCE.md` as an example of mutation testing finding a test that passed for the
 wrong reason.
 
-**Remaining risk.** The rounding direction is still a student decision: the code floors the 20% fee
-(33,333 → 26,667 / 6,666); the earlier handover draft floored the 80% tenant share (26,666 / 6,667).
-Both sum exactly, but the thesis must state one. UAT is still outstanding.
+**Remaining risk.** The rounding direction was decided on October 31, 2026: the 20% fee is floored
+and the tenant receives the remainder (33,333 → 26,667 / 6,666), so the code and tests stay as they
+are. UAT is still outstanding.
 
 ## 2026-10-31 — PostgreSQL concurrency evidence
 

@@ -115,12 +115,14 @@ For the defense: customers shop across tenants, so the catalog and checkout are 
     only by the owning tenant (not exposed as an endpoint in the MVP).
 - Money: integers in rupiah, never floats, never cents.
 - Settlement rule (BAB 1): 80% tenant / 20% manager, whole rupiah, shown only on the operator
-  dashboard. **As built:** `platform_fee_amount = intdiv(total_amount * 20, 100)` and
+  dashboard. `platform_fee_amount = intdiv(total_amount * 20, 100)` and
   `tenant_share_amount = total_amount - platform_fee_amount`, stored on `tenant_orders` when the
-  payment is confirmed and never recomputed on read. This gives the remainder to the tenant, so at
-  Rp 33,333 the split is 26,667 / 6,666. The earlier proposal in this document floored the tenant
-  share instead (26,666 / 6,667); the two rules differ by one rupiah. **\[CONFIRM\]** which direction
-  the thesis states, because the test suite pins the current one.
+  payment is confirmed and never recomputed on read. **Decided (October 31, 2026): the 20% fee is
+  floored and the tenant receives the remainder**, so at Rp 33,333 the split is 26,667 / 6,666 and
+  the two parts always sum exactly. The earlier draft floored the 80% tenant share instead
+  (26,666 / 6,667); that variant is rejected, and `T-PAY-13`/`T-PAY-14` pin the chosen rule. State it
+  in BAB III as "the fee is rounded down; the remainder belongs to the tenant", and note in BAB V
+  that the difference never exceeds one rupiah per tenant order.
 - No payout, tax, refund, gateway fee or tenant electricity cost is modeled.
 - Server authority: the server computes all prices and totals from product records. The client sends
   `product_id` and `quantity` only; amount, price and `tenant_id` are never accepted from the client.
@@ -365,13 +367,16 @@ Answer these before the next iteration:
 
 1. Save the approved BAB 1 as `docs/BAB1.md`, and fill its placeholders truthfully (the interview date and source, the UAT participants). Describe the GMFS source accurately, and confirm the 13 tenants, the 80:20 rule and the manual recap with the manager in a short documented interview.
 2. Ask the lecturer to approve replacing the mock adapter with the Midtrans sandbox, to rewrite limitation 4 and the background sentence, and to decide whether signature verification and reconciliation are in scope. Confirm that QRIS-only is acceptable for the demo.
-3. Confirm the rounding direction. The code floors the 20% fee and gives the remainder to the tenant (33,333 → 26,667 / 6,666). The earlier draft floored the 80% tenant share (33,333 → 26,666 / 6,667). Both sum exactly; pick one and the test suite will pin it.
-4. UAT: the number of participants, the instrument and the date. Also who gives feedback between prototype iterations, and when.
-5. The university policy on AI-assisted coding and disclosure.
-6. The deadline and the next supervisor meeting.
-7. Midtrans sandbox account status, and whether you can run an HTTPS tunnel.
-8. Menu and price data for the 13 GMFS tenants, for seeding.
-9. Confirm the retained tenant-order states (`unpaid`, `paid`, `queued`, `cancelled`, with `queued` terminal) and that the longer kitchen lifecycle stays out of scope.
+3. UAT: the number of participants, the instrument and the date. Also who gives feedback between prototype iterations, and when.
+4. The university policy on AI-assisted coding and disclosure.
+5. The deadline and the next supervisor meeting.
+6. Midtrans sandbox account status, and whether you can run an HTTPS tunnel.
+7. Menu and price data for the 13 GMFS tenants, for seeding.
+8. Confirm the retained tenant-order states (`unpaid`, `paid`, `queued`, `cancelled`, with `queued` terminal) and that the longer kitchen lifecycle stays out of scope.
+
+Answered on October 31, 2026: the rounding direction (fee floored, remainder to the tenant — see
+Section 6), the docs language, the stack versions, the payment method (QRIS only), and the tenancy
+enforcement choice.
 
 ## Sources
 

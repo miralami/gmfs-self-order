@@ -265,8 +265,11 @@ flips states, so a duplicate delivery cannot invent a different split. The uniqu
 
 ### ADR-4 — Store the 80/20 split at confirmation
 
-**Chosen.** `tenant_share_amount` and `platform_fee_amount` written once, on confirmation.
-**Rejected.** Computing the split on every settlement read.
+**Chosen.** `tenant_share_amount` and `platform_fee_amount` written once, on confirmation. The fee
+is floored (`intdiv(total × 20, 100)`) and the tenant receives the remainder, so the two parts always
+sum to the order total; decided October 31, 2026 and pinned by `T-PAY-13`/`T-PAY-14`.
+**Rejected.** Computing the split on every settlement read. Also rejected: flooring the tenant share
+instead, which shifts the odd rupiah to the operator.
 **Why.** A later configuration change must not retroactively change what a tenant was owed. Stored
 values also make the totals reconcile trivially and make the report auditable.
 
