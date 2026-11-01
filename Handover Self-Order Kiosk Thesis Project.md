@@ -38,7 +38,7 @@ Thesis -> Project -> Tasks. Every task must trace to a project requirement, and 
 - **Project.** GMFS Self-Order: a web self-order system for the Gajah Mada Food Street food court in Jakarta Pusat, with 13 tenants. A customer puts items from several tenants into one cart, checks out once and pays centrally. The checkout is split into one order per tenant, and repeated payment notifications are handled idempotently. Tenants have a dashboard to queue paid orders for preparation. The operator has a dashboard with a cross-tenant settlement summary (80% tenant, 20% manager).
 - **Focus of this document.** The implementation and evidence side of the thesis, not the thesis prose.
 - **Current status (October 31, 2026).** The MVP is built and committed on `main`: Laravel API, React
-  SPA, Midtrans QRIS adapter, 13-tenant seeder, 38 tests / 219 assertions green. Sections 6, 7, 9, 10
+  SPA, Midtrans QRIS adapter, 13-tenant seeder, 41 tests / 237 assertions green. Sections 6, 7, 9, 10
   and 11 below have been reconciled from "proposal" to "as built"; what is genuinely still open is in
   Section 15. `docs/PRD.md`, `docs/BSD.md`, `docs/API.md`, `docs/DIAGRAMS.md` and `docs/EVIDENCE.md`
   describe the same system and win over this document where they are more specific.
@@ -296,7 +296,7 @@ Report BAB V results as black-box test-case tables built around the four critica
 - Mutation checks: remove each unique constraint or guard in turn and confirm that its test fails.
 - Crash recovery between the payment attempt and the charge, only if a reconciliation job is approved.
 
-**Recorded status (October 31, 2026).** `php artisan test` → **38 tests / 219 assertions passing** on
+**Recorded status (October 31, 2026).** `php artisan test` → **41 tests / 237 assertions passing** on
 SQLite and again on PostgreSQL 17.6. `scripts/mutation-check.php` → **8 of 9 mutations killed**; the
 survivor (removing only the unique `(checkout_id, tenant_id)` index) is explained below.
 

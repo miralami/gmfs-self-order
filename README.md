@@ -13,7 +13,7 @@ operator sees an 80/20 settlement report.
 - Database: PostgreSQL 16+ (SQLite works for a quick local run; concurrency evidence needs
   PostgreSQL)
 - Payments: Midtrans Core API, QRIS only, sandbox
-- Tests: 38 tests / 219 assertions (`cd backend && php artisan test`)
+- Tests: 43 tests / 242 assertions (`cd backend && php artisan test`)
 
 Docs: [`docs/PRD.md`](docs/PRD.md) · [`docs/BSD.md`](docs/BSD.md) · [`docs/API.md`](docs/API.md) ·
 [`docs/DIAGRAMS.md`](docs/DIAGRAMS.md) · [`docs/EVIDENCE.md`](docs/EVIDENCE.md) ·
@@ -310,7 +310,7 @@ backend/
   database/seeders/              13 tenants, managers, operator
   scripts/break-it.php           concurrency and replay harness
   scripts/mutation-check.php     mutation sensitivity harness for the test suite
-  tests/                         38 tests / 219 assertions
+  tests/                         43 tests / 242 assertions
 frontend/
   src/pages/                     Kiosk, TenantDashboard, OperatorDashboard
   src/api.ts                     typed API client

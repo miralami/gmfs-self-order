@@ -12,6 +12,18 @@ class TenantIsolationTest extends TestCase
     use CreatesKiosk;
     use RefreshDatabase;
 
+    public function test_a_non_numeric_order_id_is_not_found_instead_of_a_server_error(): void
+    {
+        [$tenant] = $this->tenantWithProduct();
+        $manager = $this->managerFor($tenant);
+
+        $this->withToken($manager['token'])->getJson('/api/v1/tenant/orders/not-a-number')
+            ->assertNotFound();
+
+        $this->withToken($manager['token'])->postJson('/api/v1/tenant/orders/not-a-number/queue-preparation')
+            ->assertNotFound();
+    }
+
     public function test_a_tenant_manager_only_sees_its_own_orders(): void
     {
         [$firstTenant, , $firstProduct] = $this->tenantWithProduct('Noodle House', 'noodle-house', 50000);

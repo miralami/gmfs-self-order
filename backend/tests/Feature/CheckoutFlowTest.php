@@ -15,6 +15,13 @@ class CheckoutFlowTest extends TestCase
     use CreatesKiosk;
     use RefreshDatabase;
 
+    public function test_a_malformed_reference_is_not_found_instead_of_a_server_error(): void
+    {
+        $this->getJson('/api/v1/checkouts/not-a-uuid')->assertNotFound();
+        $this->postJson('/api/v1/checkouts/not-a-uuid/payment-attempts')->assertNotFound();
+        $this->getJson('/api/v1/checkouts/not-a-uuid/qris')->assertNotFound();
+    }
+
     public function test_checkout_splits_into_one_unpaid_order_per_tenant(): void
     {
         $this->fakeSuccessfulCharge();

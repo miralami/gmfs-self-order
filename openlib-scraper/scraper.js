@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -33,9 +34,9 @@ const CATALOG_URL = `${ORIGIN}/home/catalog.html`;
 // Parameter advanced search
 const PUBLISHER = pick('publisher', 'OPENLIB_PUBLISHER', 'Kampus Jakarta');
 
-// Folder hasil download
-const DOWNLOAD_DIR =
-  pick('out', 'OPENLIB_OUT', 'C:\\Users\\Afif\\OneDrive - Telkom University\\TUGAS AKHIR\\openlib-download');
+// Folder hasil download.
+// Default: %USERPROFILE%\openlib-download (mengikuti user yang menjalankan script).
+const DOWNLOAD_DIR = pick('out', 'OPENLIB_OUT', path.join(os.homedir(), 'openlib-download'));
 
 // Profil browser lokal (biar login SSO cukup sekali). Tetap di komputer kamu.
 const PROFILE_DIR = path.join(__dirname, '.profile');
@@ -54,6 +55,16 @@ const REFRESH_ORDER = ['1', 'true', 'yes'].includes(String(pick('refresh', 'OPEN
 // Jeda antar request (sopan ke server)
 const DELAY_MS = Number(pick('delay', 'OPENLIB_DELAY_MS', 400));
 
+// Mode headless (tanpa jendela browser). Default: headless.
+// Login SSO butuh interaksi, jadi kalau sesi belum ada script akan membuka
+// jendela sebentar HANYA untuk login, lalu lanjut headless lagi.
+const boolPick = (argKey, envKey, fallback) =>
+  ['1', 'true', 'yes', 'on'].includes(String(pick(argKey, envKey, fallback)).toLowerCase());
+const HEADLESS = boolPick('headless', 'OPENLIB_HEADLESS', true) && !boolPick('headed', 'OPENLIB_HEADED', false);
+
+// Hanya login (simpan sesi) lalu keluar. Selalu pakai jendela biar bisa SSO/MFA.
+const LOGIN_ONLY = boolPick('login', 'OPENLIB_LOGIN', false);
+
 // Bab yang diambil
 const BAB_TARGETS = [
   { key: 'bab1', label: 'BAB 1' },
@@ -62,6 +73,10 @@ const BAB_TARGETS = [
 
 const MANIFEST_PATH = path.join(DOWNLOAD_DIR, '_manifest.json');
 const ORDER_PATH = path.join(DOWNLOAD_DIR, '_order.json');
+// Cookie sesi disimpan terpisah: cookie login situs ini adalah session cookie
+// (expires = -1) yang TIDAK ikut tersimpan saat browser ditutup, jadi harus
+// di-inject ulang tiap start supaya mode headless tetap terautentikasi.
+const SESSION_PATH = path.join(__dirname, '.session.json');
 /* ==================================================================== */
 
 let stopping = false;
@@ -74,6 +89,54 @@ process.on('SIGINT', () => {
 
 const log = (...a) => console.log(...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ---------------- sesi login (cookie persistence) ---------------- */
+function loadSessionCookies() {
+  try {
+    const data = JSON.parse(fs.readFileSync(SESSION_PATH, 'utf-8'));
+    return Array.isArray(data.cookies) ? data.cookies : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSessionCookies(cookies) {
+  try {
+    fs.writeFileSync(
+      SESSION_PATH,
+      JSON.stringify({ saved_at: new Date().toISOString(), cookies }, null, 1),
+      'utf-8'
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Cek akses sungguhan: user dianggap login hanya kalau link BAB 1 muncul. */
+function sampleDetailUrl() {
+  const order = loadOrder();
+  if (order?.items?.length) {
+    const it = order.items.find((x) => x && x.url);
+    if (it) return it.url;
+  }
+  return null;
+}
+
+async function hasChapterAccess(context) {
+  let url = sampleDetailUrl();
+  if (!url) {
+    const r = await context.request.get(CATALOG_URL, { timeout: 60000 }).catch(() => null);
+    const html = r ? await r.text().catch(() => '') : '';
+    const m = html.match(/\/home\/catalog\/id\/\d+\/slug\/[^"']+\.html/);
+    if (!m) return false;
+    url = new URL(m[0], ORIGIN).href;
+  }
+  const r = await context.request.get(url, { timeout: 60000 }).catch(() => null);
+  if (!r || !r.ok()) return false;
+  const html = await r.text().catch(() => '');
+  return /\/bab1\//i.test(html);
+}
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -145,8 +208,8 @@ async function isLoggedIn(page) {
   }
 }
 
-async function waitForLogin(page, timeoutMs = 15 * 60 * 1000) {
-  if (await isLoggedIn(page)) {
+async function waitForLogin(page, context, timeoutMs = 15 * 60 * 1000) {
+  if ((await isLoggedIn(page)) && (await hasChapterAccess(context))) {
     log('[LOGIN] Sesi login terdeteksi. Lanjut otomatis.');
     return true;
   }
@@ -164,8 +227,11 @@ async function waitForLogin(page, timeoutMs = 15 * 60 * 1000) {
   while (Date.now() - start < timeoutMs) {
     await page.waitForTimeout(2000);
     if (await isLoggedIn(page)) {
-      log('[LOGIN] Berhasil. Lanjut otomatis...');
-      return true;
+      // Verifikasi sungguhan: link BAB 1 harus bisa diakses.
+      if (await hasChapterAccess(context)) {
+        log('[LOGIN] Berhasil. Lanjut otomatis...');
+        return true;
+      }
     }
     const elapsed = Math.floor((Date.now() - start) / 1000);
     if (elapsed - lastNotice >= 30) {
@@ -533,37 +599,119 @@ function writeIndex(manifest) {
   fs.writeFileSync(path.join(DOWNLOAD_DIR, '_index.md'), lines.join('\n') + '\n', 'utf-8');
 }
 
-async function main() {
-  ensureDir(DOWNLOAD_DIR);
-  const manifest = loadManifest();
-  manifest.publisher = PUBLISHER;
+function launchBrowser(headless) {
+  return chromium.launchPersistentContext(PROFILE_DIR, {
+    headless,
+    acceptDownloads: true,
+    viewport: { width: 1360, height: 900 },
+    slowMo: headless ? 0 : 60,
+  });
+}
 
+async function openOnOrigin(context) {
+  const page = context.pages()[0] || (await context.newPage());
+  await page.goto(ORIGIN, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+  return page;
+}
+
+/**
+ * Buka context yang sudah login.
+ * - Kalau sesi tersimpan masih valid: langsung pakai (headless).
+ * - Kalau belum login: buka jendela browser sebentar untuk SSO, simpan cookie,
+ *   lalu coba lanjut headless tanpa membuang sesi yang sudah didapat.
+ */
+async function prepareContext(headless) {
+  const context = await launchBrowser(headless);
+  // Cookie tersimpan hanya dipakai untuk run headless; saat membuka jendela login
+  // jangan inject cookie lama supaya tidak mengganggu proses SSO.
+  if (headless) {
+    const cookies = loadSessionCookies();
+    if (cookies.length) await context.addCookies(cookies).catch(() => {});
+  }
+  const page = await openOnOrigin(context);
+  return { context, page };
+}
+
+async function openAuthenticatedContext() {
+  // 1) Coba langsung headless dengan cookie tersimpan.
+  const first = await prepareContext(HEADLESS);
+  if (await hasChapterAccess(first.context)) {
+    log('[LOGIN] Sesi login tersimpan masih valid.');
+    return first;
+  }
+
+  // 2) Butuh login (SSO/MFA tidak bisa di headless) → buka jendela sekali.
+  if (HEADLESS) log('[LOGIN] Sesi tidak ada/kedaluwarsa. Membuka jendela browser untuk login...');
+  await first.context.close().catch(() => {});
+  const headed = await prepareContext(false);
+
+  const ok = await waitForLogin(headed.page, headed.context);
+  if (!ok) {
+    log('[FATAL] Login tidak terdeteksi dalam batas waktu. Browser dibiarkan terbuka.');
+    return null;
+  }
+
+  // 3) Simpan cookie (termasuk session cookie) supaya run berikutnya headless.
+  const cookies = await headed.context.cookies();
+  log(
+    saveSessionCookies(cookies)
+      ? `[LOGIN] Sesi disimpan ke ${SESSION_PATH}`
+      : '[LOGIN] Gagal menyimpan sesi, lanjut dengan sesi aktif.'
+  );
+
+  if (!HEADLESS) return headed;
+
+  // 4) Coba pindah ke headless. Kalau sesi tidak terbawa, JANGAN scrape tanpa akses.
+  const headlessRun = await prepareContext(true);
+  if (await hasChapterAccess(headlessRun.context)) {
+    await headed.context.close().catch(() => {});
+    log('[LOGIN] Lanjut mode headless.');
+    return headlessRun;
+  }
+
+  await headlessRun.context.close().catch(() => {});
+  log('[WARN] Sesi tidak terbawa ke headless. Lanjut pakai jendela browser yang sudah login.');
+  return headed;
+}
+
+async function main() {
   log('==============================================================');
   log(' OPENLIB TELKOM — AUTO SCRAPER BAB 1 & BAB 2');
   log('==============================================================');
   log(`Penerbit : ${PUBLISHER}`);
   log(`Output   : ${DOWNLOAD_DIR}`);
   log(`Profil   : ${PROFILE_DIR}`);
-  log(`Mode     : ${MAX_PAGES ? `maks ${MAX_PAGES} halaman` : 'semua halaman'}`);
+  log(`Mode     : ${HEADLESS ? 'headless (tanpa jendela)' : 'headed (dengan jendela)'}`);
+  log(`Halaman  : ${MAX_PAGES ? `maks ${MAX_PAGES}` : 'semua'}`);
   log(`Rentang  : ${START_INDEX} → ${END_INDEX || 'akhir'}`);
   log('');
 
-  const context = await chromium.launchPersistentContext(PROFILE_DIR, {
-    headless: false,
-    acceptDownloads: true,
-    viewport: { width: 1360, height: 900 },
-    slowMo: 60,
-  });
-  context.on('page', (p) => p.on('dialog', (d) => d.accept().catch(() => {})));
-
-  const page = context.pages()[0] || (await context.newPage());
-  await page.goto(ORIGIN, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
-
-  const ok = await waitForLogin(page);
-  if (!ok) {
-    log('[FATAL] Login tidak terdeteksi dalam batas waktu. Browser dibiarkan terbuka.');
-    return;
+  if (LOGIN_ONLY) {
+    const { context, page } = await prepareContext(false);
+    const ok = await waitForLogin(page, context);
+    if (ok) saveSessionCookies(await context.cookies());
+    await context.close().catch(() => {});
+    log(ok ? '[LOGIN] Sesi disimpan. Sekarang bisa jalankan tanpa login lagi.' : '[LOGIN] Gagal login.');
+    process.exit(ok ? 0 : 1);
   }
+
+  try {
+    ensureDir(DOWNLOAD_DIR);
+  } catch (e) {
+    log(`[FATAL] Tidak bisa membuat folder output: ${DOWNLOAD_DIR}`);
+    log(`        ${e.message}`);
+    log('        Tentukan folder lain yang bisa ditulis, contoh:');
+    log('        npm start -- --out "D:\\\\openlib-download"');
+    log('        (atau set env OPENLIB_OUT)');
+    process.exit(1);
+  }
+  const manifest = loadManifest();
+  manifest.publisher = PUBLISHER;
+
+  const auth = await openAuthenticatedContext();
+  if (!auth) return;
+  const { context, page } = auth;
+  context.on('page', (p) => p.on('dialog', (d) => d.accept().catch(() => {})));
 
   // Daftar urutan item: pakai cache _order.json kalau ada (biar nomor urut stabil saat pause/lanjut)
   let items;
@@ -653,6 +801,9 @@ async function main() {
   writeIndex(manifest);
   saveManifest(manifest);
 
+  // Simpan ulang cookie sesi (mungkin diperbarui server selama run).
+  saveSessionCookies(await context.cookies());
+
   log('');
   log('==============================================================');
   log(stopping ? ' DIJEDA' : ' SELESAI');
@@ -663,6 +814,11 @@ async function main() {
   log(` Skip penerbit : ${stats.skipped}`);
   log(` Output        : ${DOWNLOAD_DIR}`);
   log('==============================================================');
+  if (stats.complete + stats.partial === 0 && stats.none > 0) {
+    log('[WARN] Tidak ada file yang berhasil diunduh sama sekali.');
+    log('       Kemungkinan sesi login tidak valid. Jalankan: npm run login');
+    log('       lalu ulangi. Kalau masih kosong, cek bagian "Catatan teknis" di README.');
+  }
 
   const next = lastIndex + 1;
   if (stopping && next <= total) {
@@ -672,7 +828,8 @@ async function main() {
   } else if (lastIndex < total) {
     log(`[NEXT ] Sisa urutan ${next}–${total}. Lanjut: npm start -- --from ${next}`);
   }
-  log('Browser dibiarkan terbuka. Tutup manual kalau sudah selesai.');
+  await context.close().catch(() => {});
+  log(HEADLESS ? 'Browser headless ditutup.' : 'Browser ditutup.');
 }
 
 main().catch((err) => {

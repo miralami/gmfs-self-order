@@ -130,7 +130,7 @@ class CheckoutController extends Controller
     private function findByReference(string $reference): Checkout
     {
         return Checkout::query()
-            ->where('reference', $reference)
+            ->whereReference($reference)
             ->with(['items', 'tenantOrders.tenant', 'paymentAttempts'])
             ->firstOrFail();
     }

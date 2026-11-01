@@ -14,6 +14,24 @@ Script ini jalan **di komputer kamu**. Kamu yang login SSO, dan kredensial tidak
    - download PDF-nya ke folder tujuan
 3. Login disimpan di profil lokal `.profile/`, jadi run berikutnya tidak perlu login lagi (sampai sesi kedaluwarsa).
 
+## Headless (tanpa jendela browser)
+
+Default sekarang **headless**. Kalau sesi login sudah tersimpan, tidak ada jendela sama sekali.
+
+Kalau belum ada sesi / sesi kedaluwarsa, script membuka jendela **sekali** untuk login SSO, lalu menutupnya sendiri dan lanjut headless.
+
+Mau login duluan tanpa mengunduh apa pun (biar run berikutnya benar-benar tanpa jendela):
+
+```bash
+npm run login
+```
+
+Balik ke mode berjendela penuh (misal untuk debugging):
+
+```bash
+npm start -- --headed
+```
+
 ## Cara pakai
 
 ```bash
@@ -27,7 +45,9 @@ Login di browser yang muncul. Setelah itu semua berjalan otomatis.
 
 ## Output
 
-Default: `C:\Users\Afif\OneDrive - Telkom University\TUGAS AKHIR\openlib-download\`
+Default: `%USERPROFILE%\openlib-download` — mis. `C:\Users\Sena\openlib-download`.
+
+Mau folder lain? Pakai `--out "D:\openlib-download"` (lihat tabel opsi CLI).
 
 ```
 openlib-download/
@@ -82,11 +102,14 @@ npm start -- --refresh --from 1
 | `--items N` | semua | batasi jumlah item yang diproses |
 | `--pages N` | semua | batasi halaman listing saat crawl |
 | `--publisher "..."` | `Kampus Jakarta` | nilai filter Penerbit |
-| `--out "D:\path"` | folder OneDrive | folder output |
+| `--out "D:\path"` | otomatis (lihat bagian Output) | folder output |
 | `--delay 400` | `400` | jeda antar request (ms) |
 | `--refresh` | – | crawl ulang daftar, abaikan `_order.json` |
+| `--headless` | aktif | jalankan tanpa jendela browser (default) |
+| `--headed` | – | paksa pakai jendela browser |
+| `--login` | – | login saja lalu keluar (simpan sesi) |
 
-Semua opsi juga bisa lewat environment variable (`OPENLIB_FROM`, `OPENLIB_TO`, `OPENLIB_MAX_ITEMS`, `OPENLIB_MAX_PAGES`, `OPENLIB_PUBLISHER`, `OPENLIB_OUT`, `OPENLIB_DELAY_MS`, `OPENLIB_REFRESH`).
+Semua opsi juga bisa lewat environment variable (`OPENLIB_FROM`, `OPENLIB_TO`, `OPENLIB_MAX_ITEMS`, `OPENLIB_MAX_PAGES`, `OPENLIB_PUBLISHER`, `OPENLIB_OUT`, `OPENLIB_DELAY_MS`, `OPENLIB_REFRESH`, `OPENLIB_HEADLESS`, `OPENLIB_HEADED`, `OPENLIB_LOGIN`).
 
 ## Catatan teknis
 

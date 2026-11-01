@@ -24,7 +24,7 @@ class DemoCharge extends Command
 
     public function handle(): int
     {
-        $checkout = Checkout::query()->where('reference', $this->argument('reference'))->first();
+        $checkout = Checkout::query()->whereReference((string) $this->argument('reference'))->first();
 
         if ($checkout === null) {
             $this->error('Checkout not found.');
