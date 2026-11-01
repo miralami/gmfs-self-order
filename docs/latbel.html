@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>latbel.md</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <style>
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      text-align: justify;
+    }
+    h1, h2, h3, h4, h5 {
+      font-family: "Times New Roman", Times, serif;
+      text-align: left;
+    }
+    td, h1, h2, h3, h4, h5, p, ul, ol, li {
+      page-break-inside: avoid;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 0.35rem 0.5rem;
+      vertical-align: top;
+      text-align: left;
+    }
+    blockquote {
+      color: #444;
+      border-left: 4px solid #ccc;
+      margin-left: 0;
+      padding-left: 1rem;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">latbel.md</h1>
+</header>
+<h1 id="proposal-tugas-akhir">PROPOSAL TUGAS AKHIR</h1>
+<p><strong>Judul (Bahasa Indonesia)</strong> Perancangan Sistem
+<em>Self-Order</em> Terpusat Berbasis Web untuk <em>Food Court</em>
+Multi-Tenant (Studi Kasus: Gajah Mada Food Street) <em>(Font: Times New
+Roman, 16 pt, Center, Bold, Kapital)</em></p>
+<p><strong>Judul (Bahasa Inggris)</strong> Design of a Web-Based
+Centralized Self-Order System for Multi-Tenant Food Courts (Case Study:
+Gajah Mada Food Street) <em>(Font: Times New Roman, 16 pt, Center, Bold,
+Italic, Kapital)</em></p>
+<blockquote>
+<p>Catatan format mengikuti <code>Metopen Afif.docx</code> (Universitas
+Telkom): Times New Roman 12 pt, justify, spasi 1,5; kertas A4; margin
+kiri 4 cm, kanan/atas/bawah 3 cm.</p>
+</blockquote>
+<hr />
+<h1 id="bab-1-pendahuluan">BAB 1 PENDAHULUAN</h1>
+<p><em>(Font: Times New Roman, 14 pt, Center, Bold, Kapital)</em></p>
+<h2 id="11-latar-belakang">1.1 Latar Belakang</h2>
+<p><em>(Font: Times New Roman, 12 pt, Center, Bold, Kapital)</em></p>
+<p>Transformasi digital telah mengubah cara pelaku usaha menjalankan
+bisnis, mulai dari proses pemasaran, transaksi, hingga pengelolaan data
+operasional. Di Indonesia, Usaha Mikro, Kecil, dan Menengah (UMKM)
+menjadi tulang punggung perekonomian nasional dengan kontribusi sekitar
+61% terhadap Produk Domestik Bruto (PDB) serta kemampuan menyerap
+sekitar 97% dari total tenaga kerja, sementara jumlah unit usahanya
+mencapai lebih dari 64 juta atau sekitar 99% dari keseluruhan unit usaha
+(Kementerian Koordinator Bidang Perekonomian Republik Indonesia, 2023).
+Meskipun perannya sangat besar, tingkat pemanfaatan teknologi digital di
+kalangan UMKM masih belum merata. Banyak pelaku usaha, terutama pada
+skala mikro dan kecil, masih mengandalkan pencatatan dan transaksi
+manual sehingga kurang efisien, rentan terhadap kesalahan, dan sulit
+dikembangkan. Kondisi ini menjadikan digitalisasi UMKM bukan hanya
+agenda kebijakan, tetapi juga ruang terbuka bagi perancangan solusi
+teknologi yang terjangkau, mudah digunakan, dan sesuai dengan kebutuhan
+nyata di lapangan.</p>
+<p>Sektor makanan dan minuman (mamin) merupakan salah satu penggerak
+utama UMKM dan industri pengolahan. Industri makanan dan minuman
+menyumbang sekitar 37,77% terhadap PDB industri pengolahan nonmigas
+sehingga menjadikannya subsektor strategis (Kementerian Perindustrian
+Republik Indonesia, 2023). Pada ranah ritel dan jasa kuliner, salah satu
+model usaha yang dijumpai adalah <em>food court</em> atau pusat jajanan,
+yaitu suatu lokasi yang menghimpun banyak pelaku usaha kuliner
+(<em>tenant</em>) dalam satu ruang bersama. Model ini menguntungkan
+karena pelanggan memperoleh banyak pilihan dalam satu kali kunjungan,
+sedangkan para <em>tenant</em> dapat berbagi fasilitas dan lalu lintas
+pengunjung. Namun, di balik kemudahan tersebut muncul kompleksitas
+operasional: setiap <em>tenant</em> umumnya mengelola pemesanan dan
+pembayarannya secara mandiri, sehingga pengalaman pelanggan menjadi
+terpecah dan pengelola <em>food court</em> mengalami kesulitan untuk
+melakukan rekapitulasi penjualan maupun perhitungan bagi hasil.</p>
+<p>Perkembangan ini sejalan dengan makin luasnya penerapan teknologi
+layanan mandiri. <em>Self-service technology</em> (SST) didefinisikan
+sebagai teknologi yang memungkinkan pelanggan menghasilkan suatu layanan
+secara mandiri tanpa interaksi langsung dengan pegawai (Meuter et al.,
+2000). Penelitian menunjukkan bahwa adopsi SST dipengaruhi oleh
+kemudahan penggunaan, keandalan, dan manfaat yang dirasakan pengguna,
+serta dapat meningkatkan kepuasan dan efisiensi layanan apabila
+dirancang dengan baik (Bitner et al., 2002). Salah satu bentuk SST yang
+tumbuh pesat di industri makanan dan minuman adalah <em>self-order
+kiosk</em>, yaitu terminal pemesanan mandiri yang memungkinkan pelanggan
+memilih menu, memesan, dan membayar sendiri (Rastegar et al., 2021).</p>
+<p>Pada studi yang ditinjau, penerapan <em>self-order kiosk</em> pada
+layanan makanan dilaporkan mempercepat proses pemesanan, mengurangi
+panjang antrean, menurunkan potensi kesalahan pencatatan pesanan, dan
+meningkatkan kepuasan pelanggan (Rastegar et al., 2021; Akshaya et al.,
+2025). Meskipun demikian, solusi kiosk dan sistem pemesanan mandiri yang
+tersedia umumnya dirancang untuk satu gerai (<em>single-tenant</em>),
+dengan asumsi satu katalog menu, satu kasir, dan satu rekening
+penerimaan. Padahal, <em>food court</em> pada dasarnya merupakan
+lingkungan <em>multi-tenant</em> yang menuntut kemampuan melayani banyak
+pelaku usaha sekaligus. Kesenjangan antara karakteristik <em>food
+court</em> dan rancangan sistem pemesanan yang berorientasi satu gerai
+tersebut menjadi titik persoalan utama penelitian ini.</p>
+<p>Konsep <em>multi-tenant</em> merujuk pada arsitektur perangkat lunak
+di mana satu instans aplikasi melayani banyak penyewa (<em>tenant</em>)
+sekaligus, dengan tetap menjaga isolasi data di antara penyewa (Bezemer
+&amp; Zaidman, 2010; Kabbedijk et al., 2015). Tantangan utama dalam
+arsitektur semacam ini meliputi isolasi data, kustomisasi, dan kontrol
+akses antartenant (Bezemer &amp; Zaidman, 2010). Ketika konsep tersebut
+diterapkan pada pemesanan di <em>food court</em>, muncul tuntutan yang
+lebih kompleks: satu keranjang belanja dapat berisi produk dari beberapa
+<em>tenant</em>, pesanan kemudian harus dipecah menjadi pesanan terpisah
+untuk masing-masing <em>tenant</em> (<em>split order</em>), pembayaran
+dilakukan satu kali secara terpusat, dan dana yang terkumpul perlu
+dibagi (<em>settlement</em>) kepada tiap <em>tenant</em> berdasarkan
+pola bagi hasil yang berlaku. Kebutuhan ini menuntut konsistensi
+transaksi serta ketertelusuran antara nominal pesanan, pembayaran, dan
+hak setiap <em>tenant</em>. Dalam konteks GMFS, isolasi
+<em>multi-tenant</em> diwujudkan melalui pemisahan data menu, pesanan,
+dan ringkasan pendapatan berdasarkan identitas <em>tenant</em>,
+sementara operator memiliki akses lintas <em>tenant</em> untuk keperluan
+rekapitulasi.</p>
+<p>Gajah Mada Food Street (GMFS) merupakan <em>food court</em> di
+kawasan Gajah Mada, Jakarta Pusat, yang menampung 13 <em>tenant</em>
+kuliner. Berdasarkan wawancara awal dengan pengelola GMFS pada
+[tanggal], setiap <em>tenant</em> menerima pesanan dan pembayaran secara
+mandiri, sehingga pelanggan yang membeli dari dua <em>tenant</em> atau
+lebih harus mengantre dan membayar dua kali. Pengelola belum memiliki
+catatan transaksi terpusat; rekap penjualan dan perhitungan bagi hasil
+80:20 (80% untuk <em>tenant</em> dan 20% untuk pengelola) masih dihitung
+manual dari laporan tiap <em>tenant</em>, sementara biaya listrik dan
+operasional <em>tenant</em> ditanggung <em>tenant</em>. Kondisi tersebut
+menunjukkan kebutuhan akan sistem pemesanan mandiri yang memusatkan
+pemesanan dan pembayaran lintas <em>tenant</em> dalam satu alur, tanpa
+menghilangkan pengelolaan pesanan oleh masing-masing
+<em>tenant</em>.</p>
+<p>Pada sisi pembayaran, lanskap transaksi digital di Indonesia telah
+berkembang pesat. <em>Quick Response Code Indonesian Standard</em>
+(QRIS) merupakan standar kode QR pembayaran nasional yang ditetapkan
+oleh Bank Indonesia untuk memfasilitasi transaksi pembayaran secara
+terpadu (Bank Indonesia, 2021). Adopsi QRIS tumbuh sangat cepat hingga
+menjangkau puluhan juta pengguna dan merchant, yang sebagian besar
+merupakan UMKM (Bank Indonesia, 2025). Namun, pada konteks <em>food
+court</em> multi-tenant, pembayaran yang masih terpisah di tiap
+<em>tenant</em> membuat pelanggan harus melakukan beberapa transaksi
+untuk satu kali kunjungan, sekaligus menyulitkan pengelola dalam
+menggabungkan dan merekonsiliasi penerimaan. Karena QRIS menyalurkan
+dana ke satu <em>merchant</em>, pembayaran pelanggan pada sistem ini
+diterima pengelola dan bagian setiap <em>tenant</em> dihitung melalui
+<em>settlement</em> internal. Pada tahap pengembangan, integrasi
+pembayaran menggunakan <em>mock adapter</em> yang mensimulasikan
+notifikasi pembayaran, sehingga alur pembayaran terpusat dapat diuji
+tanpa dana riil; verifikasi <em>signature</em>, rekonsiliasi, dan
+perilaku <em>gateway</em> produksi tidak termasuk dalam cakupan
+penelitian ini.</p>
+<p>Sejumlah penelitian telah mengembangkan sistem pemesanan makanan
+berbasis web untuk restoran dan kafe, termasuk yang telah
+mengintegrasikan <em>payment gateway</em> (Prasetya et al., 2024), serta
+sistem pemesanan <em>food court</em> yang bertujuan mempercepat proses
+pemesanan dan mengurangi antrean (Akshaya et al., 2025). Berdasarkan
+penelusuran terhadap studi yang ditinjau, belum ditemukan pembahasan
+yang secara terpadu mencakup kebutuhan <em>food court</em> multi-tenant,
+khususnya kombinasi antara pemecahan pesanan lintas <em>tenant</em>
+(<em>split order</em>), pembayaran terpusat dalam satu transaksi, dan
+perhitungan bagi hasil antara pengelola dan <em>tenant</em>. Dengan
+demikian, masih terbuka ruang untuk merancang sebuah sistem
+<em>self-order</em> terpusat yang secara eksplisit menjawab ketiga
+kebutuhan tersebut secara terpadu.</p>
+<p>Berdasarkan uraian di atas, penelitian ini merancang dan membangun
+<strong>GMFS Self-Order</strong>, yaitu sistem <em>self-order</em>
+berbasis web untuk <em>food court</em> multi-tenant. Sistem memungkinkan
+pelanggan memilih produk dari banyak <em>tenant</em> dalam satu
+keranjang, melakukan satu kali <em>checkout</em>, dan membayar secara
+terpusat melalui satu alur pembayaran. Di sisi backend, satu transaksi
+<em>checkout</em> secara otomatis dipecah menjadi pesanan per
+<em>tenant</em> (<em>split order</em>). Sistem juga menyediakan
+mekanisme pembayaran yang bersifat <em>idempoten</em> agar pengiriman
+ulang notifikasi pembayaran tidak menghasilkan pesanan atau catatan
+<em>settlement</em> ganda, dasbor <em>tenant</em> untuk mengantrekan
+pesanan ke tahap persiapan, serta dasbor operator untuk melihat
+ringkasan <em>settlement</em> lintas <em>tenant</em>. Ringkasan tersebut
+menghitung bagian <em>tenant</em> (80%) dan bagian pengelola (20%) dari
+setiap pesanan <em>tenant</em> yang telah terbayar. Sistem dikembangkan
+sebagai <em>modular monolith</em> berbasis antarmuka pemrograman
+aplikasi (API) REST untuk menjaga kesederhanaan operasional namun tetap
+rapi secara arsitektur.</p>
+<p>Penelitian ini menggunakan pendekatan <em>Research and
+Development</em> (R&amp;D) dengan model <em>prototyping</em>, yang
+menekankan pengembangan secara bertahap serta pelibatan umpan balik
+pengguna pada setiap iterasi (Pressman &amp; Maxim, 2020). Pengujian
+fungsional <em>black-box</em> difokuskan pada skenario kritis, yaitu
+ketepatan <em>split order</em>, isolasi data <em>tenant</em>, penolakan
+persiapan sebelum pembayaran terkonfirmasi, dan penanganan notifikasi
+pembayaran berulang. <em>User Acceptance Testing</em> (UAT) melibatkan
+[pengelola dan perwakilan <em>tenant</em>] untuk menilai kesesuaian
+fungsi dan penerimaan pengguna (Zulkarnaini et al., 2023). Dengan Gajah
+Mada Food Street sebagai studi kasus, diharapkan penelitian ini
+menghasilkan artefak perangkat lunak sekaligus gambaran penerapan
+arsitektur multi-tenant pada layanan pemesanan mandiri yang relevan bagi
+digitalisasi UMKM di sektor kuliner.</p>
+<hr />
+<h2 id="12-rumusan-masalah">1.2 Rumusan Masalah</h2>
+<p><em>(Font: Times New Roman, 12 pt, Center, Bold, Kapital)</em></p>
+<p>Berdasarkan latar belakang yang telah diuraikan, rumusan masalah
+dalam penelitian ini adalah sebagai berikut:</p>
+<ol type="1">
+<li>Bagaimana merancang dan membangun sistem <em>self-order</em>
+terpusat berbasis web untuk <em>food court</em> multi-tenant yang
+mendukung pemecahan pesanan lintas <em>tenant</em> (<em>split
+order</em>), pembayaran terpusat dalam satu transaksi, dan perhitungan
+bagi hasil 80:20 antara <em>tenant</em> dan pengelola?</li>
+<li>Bagaimana mengevaluasi fungsionalitas dan penerimaan pengguna
+terhadap sistem yang dibangun melalui pengujian <em>black-box</em> dan
+<em>User Acceptance Testing</em> (UAT)?</li>
+</ol>
+<hr />
+<h2 id="13-tujuan-penelitian">1.3 Tujuan Penelitian</h2>
+<p><em>(Font: Times New Roman, 12 pt, Center, Bold, Kapital)</em></p>
+<p>Sejalan dengan rumusan masalah, tujuan penelitian ini adalah sebagai
+berikut:</p>
+<ol type="1">
+<li>Merancang dan membangun sistem <em>self-order</em> terpusat berbasis
+web untuk <em>food court</em> multi-tenant, termasuk pemecahan pesanan
+lintas <em>tenant</em>, pembayaran terpusat dalam satu transaksi, dan
+perhitungan bagi hasil 80:20 antara <em>tenant</em> dan pengelola.</li>
+<li>Mengevaluasi fungsionalitas dan penerimaan pengguna terhadap sistem
+melalui pengujian <em>black-box</em> dan UAT.</li>
+</ol>
+<hr />
+<h2 id="14-batasan-masalah">1.4 Batasan Masalah</h2>
+<p><em>(Font: Times New Roman, 12 pt, Center, Bold, Kapital)</em></p>
+<p>Agar penelitian tetap terarah, ditetapkan batasan masalah sebagai
+berikut:</p>
+<ol type="1">
+<li>Penelitian berfokus pada perancangan dan pembangunan sistem
+<em>self-order</em> terpusat untuk <em>food court</em> multi-tenant,
+dengan Gajah Mada Food Street sebagai studi kasus.</li>
+<li>Cakupan sistem meliputi antarmuka pelanggan (katalog, keranjang,
+<em>checkout</em>), pemecahan pesanan per <em>tenant</em>, pembayaran
+terpusat, dasbor <em>tenant</em> untuk antrean persiapan, dan dasbor
+operator untuk ringkasan <em>settlement</em>.</li>
+<li>Integrasi pembayaran menggunakan <em>mock adapter</em>; transaksi
+tidak menggunakan dana riil. Verifikasi <em>signature</em>,
+rekonsiliasi, integrasi ke penyedia pembayaran produksi, dan aspek
+kepatuhan perizinan penyelenggara jasa pembayaran tidak dibahas.</li>
+<li>Perhitungan <em>settlement</em> terbatas pada rekapitulasi transaksi
+terbayar dan pembagian 80:20; penyaluran dana otomatis
+(<em>payout</em>), pajak, <em>refund</em>, biaya <em>payment
+gateway</em>, serta biaya listrik dan operasional <em>tenant</em> tidak
+dimodelkan.</li>
+<li>Sistem dirancang untuk dijalankan pada satu VPS; arsitektur
+<em>microservices</em>, Kubernetes, dan strategi <em>scaling</em>
+multi-server berada di luar cakupan.</li>
+<li>Sistem tidak membahas fitur di luar lingkup pemesanan, seperti
+manajemen inventori/stok, manajemen gambar produk, program loyalitas,
+analitik lanjutan, dan multi-bahasa, termasuk fitur rekomendasi menu,
+personalisasi, dan iklan berbayar yang disarankan sebagai pengembangan
+lanjutan.</li>
+<li>Pengujian difokuskan pada fungsionalitas dan penerimaan pengguna;
+pengujian beban dan pengujian keamanan tingkat lanjut tidak
+dilakukan.</li>
+<li>Evaluasi dilakukan pada studi kasus GMFS yang memiliki 13
+<em>tenant</em>; data uji menggunakan <em>tenant</em> dan menu yang
+tersedia pada saat pengujian, serta pengujian dilakukan melalui
+<em>browser</em> desktop/tablet, bukan perangkat kiosk fisik.</li>
+</ol>
+<hr />
+<h2 id="15-kontribusi-dan-manfaat">1.5 Kontribusi dan Manfaat</h2>
+<p><em>(Font: Times New Roman, 12 pt, Center, Bold, Kapital)</em></p>
+<h3 id="151-kontribusi-penelitian">1.5.1 Kontribusi Penelitian</h3>
+<ol type="1">
+<li><strong>Kontribusi terhadap perancangan sistem.</strong> Penelitian
+ini menghasilkan rancangan dan implementasi sistem <em>self-order</em>
+terpusat yang menerapkan arsitektur multi-tenant pada konteks <em>food
+court</em>, mencakup mekanisme <em>split order</em>, pembayaran terpusat
+yang idempoten, dan perhitungan bagi hasil 80:20 antara <em>tenant</em>
+dan pengelola.</li>
+<li><strong>Kontribusi terhadap praktik digitalisasi UMKM.</strong>
+Penelitian ini mendemonstrasikan bagaimana kebutuhan nyata pelaku usaha
+kuliner di <em>food court</em> dapat dijawab melalui solusi perangkat
+lunak yang memusatkan pemesanan, pembayaran, dan rekapitulasi pendapatan
+tanpa menghilangkan kemandirian tiap <em>tenant</em>.</li>
+<li><strong>Kontribusi terhadap pengembangan perangkat lunak.</strong>
+Penelitian ini menjadi contoh penerapan pendekatan R&amp;D dengan model
+<em>prototyping</em> yang dievaluasi menggunakan pengujian
+<em>black-box</em> dan UAT pada studi kasus nyata.</li>
+</ol>
+<h3 id="152-manfaat-penelitian">1.5.2 Manfaat Penelitian</h3>
+<ol type="1">
+<li><strong>Bagi pelanggan.</strong> Sistem memberikan kemudahan untuk
+memesan dari beberapa <em>tenant</em> dalam satu keranjang dan melakukan
+pembayaran satu kali, sehingga mengurangi pengulangan antrean dan
+transaksi.</li>
+<li><strong>Bagi <em>tenant</em>.</strong> Sistem membantu
+<em>tenant</em> menerima pesanan secara terstruktur, mengelola antrean
+persiapan, dan memperoleh data pesanan yang lebih rapi.</li>
+<li><strong>Bagi pengelola <em>food court</em>.</strong> Sistem
+menyediakan ringkasan penjualan dan <em>settlement</em> lintas
+<em>tenant</em> yang mempermudah rekapitulasi dan perhitungan bagi hasil
+80:20.</li>
+<li><strong>Bagi akademisi dan peneliti selanjutnya.</strong> Penelitian
+ini dapat menjadi referensi penerapan arsitektur multi-tenant dan alur
+pembayaran terpusat pada sistem pemesanan makanan.</li>
+</ol>
+<hr />
+<h1 id="daftar-pustaka">DAFTAR PUSTAKA</h1>
+<p><em>(Format APA 7th edition)</em></p>
+<p>Akshaya, R., Himalini, K., &amp; Kamalini. (2025). Smart food court
+ordering system. <em>International Journal of Research Publication and
+Reviews, 6</em>(11), 8692–8694.</p>
+<p>Bank Indonesia. (2021). <em>Peraturan Bank Indonesia Nomor
+23/6/PBI/2021 tentang Penyedia Jasa Pembayaran</em>. Bank Indonesia. <a
+href="https://www.bi.go.id">https://www.bi.go.id</a></p>
+<p>Bank Indonesia. (2025). <em>QRIS jelajah Indonesia 2025 dorong
+digitalisasi</em> [Siaran pers]. <a
+href="https://www.bi.go.id/id/publikasi/ruang-media/news-release/Pages/sp_2717025.aspx">https://www.bi.go.id/id/publikasi/ruang-media/news-release/Pages/sp_2717025.aspx</a></p>
+<p>Bezemer, C.-P., &amp; Zaidman, A. (2010). Multi-tenant SaaS
+applications: Maintenance dream or nightmare? Dalam <em>Proceedings of
+the Joint ERCIM Workshop on Software Evolution (EVOL) and International
+Workshop on Principles of Software Evolution (IWPSE)</em> (hlm. 88–92).
+Association for Computing Machinery. <a
+href="https://doi.org/10.1145/1862372.1862393">https://doi.org/10.1145/1862372.1862393</a></p>
+<p>Bitner, M. J., Ostrom, A. L., &amp; Meuter, M. L. (2002).
+Implementing successful self-service technologies. <em>Academy of
+Management Executive, 16</em>(4), 96–109. <a
+href="https://doi.org/10.5465/ame.2002.8951333">https://doi.org/10.5465/ame.2002.8951333</a></p>
+<p>Kabbedijk, J., Bezemer, C.-P., Jansen, S., &amp; Zaidman, A. (2015).
+Defining multi-tenancy: A systematic mapping study on the academic and
+the industrial perspective. <em>Journal of Systems and Software,
+100</em>, 139–148. <a
+href="https://doi.org/10.1016/j.jss.2014.10.019">https://doi.org/10.1016/j.jss.2014.10.019</a></p>
+<p>Kementerian Koordinator Bidang Perekonomian Republik Indonesia.
+(2023). <em>Pemerintah dorong UMKM naik kelas, tingkatkan kontribusi
+terhadap ekspor Indonesia</em>. <a
+href="https://www.ekon.go.id/publikasi/detail/6152">https://www.ekon.go.id/publikasi/detail/6152</a></p>
+<p>Kementerian Perindustrian Republik Indonesia. (2023). <em>Kontribusi
+industri makanan dan minuman tembus 37,77 persen</em>. <a
+href="https://kemenperin.go.id/artikel/23393">https://kemenperin.go.id/artikel/23393</a></p>
+<p>Meuter, M. L., Ostrom, A. L., Roundtree, R. I., &amp; Bitner, M. J.
+(2000). Self-service technologies: Understanding customer satisfaction
+with technology-based service encounters. <em>Journal of Marketing,
+64</em>(3), 50–64. <a
+href="https://doi.org/10.1509/jmkg.64.3.50.18024">https://doi.org/10.1509/jmkg.64.3.50.18024</a></p>
+<p>Prasetya, M. G., Heksaputra, D., Wicaksono, Y., &amp; Harahap, A.
+(2024). Perancangan aplikasi pemesanan menu pada Kafe Ra Kopiran
+berbasis website menggunakan metode waterfall. <em>Jurnal Teknologi
+Sistem Informasi, 5</em>(2), 173–187. <a
+href="https://doi.org/10.35957/jtsi.v5i2.9028">https://doi.org/10.35957/jtsi.v5i2.9028</a></p>
+<p>Pressman, R. S., &amp; Maxim, B. R. (2020). <em>Software engineering:
+A practitioner's approach</em> (9th ed.). McGraw-Hill Education.</p>
+<p>Rastegar, N., Flaherty, J., Liang, L., &amp; Choi, H.-s. (2021). The
+adoption of self-service kiosks in quick-service restaurants.
+<em>European Journal of Tourism Research, 27</em>, 2709. <a
+href="https://doi.org/10.54055/ejtr.v27i.2139">https://doi.org/10.54055/ejtr.v27i.2139</a></p>
+<p>Zulkarnaini, Firdhayanti, A., Taufik, T., &amp; Bachry, B. (2023).
+User acceptance testing through blackbox evaluation for corn
+distribution information system. <em>bit-Tech, 6</em>(2), 208–215.</p>
+<hr />
+<h1 id="catatan-penyusunan-bukan-bagian-dokumen-ta">CATATAN PENYUSUNAN
+(bukan bagian dokumen TA)</h1>
+<blockquote>
+<p>Bagian ini hanya untuk membantu penyusunan. Hapus sebelum dimasukkan
+ke dokumen resmi.</p>
+</blockquote>
+<ol type="1">
+<li><strong>Gaya sitasi.</strong> Draf ini memakai <strong>APA
+7</strong>, konsisten dengan <code>Metopen Afif.docx</code>. Jika
+pembimbing meminta <strong>IEEE</strong> sesuai template kampus, seluruh
+sitasi perlu dikonversi.</li>
+<li><strong>Lokasi GMFS.</strong> Teks sudah diarahkan ke <strong>Jl.
+Gajah Mada, Jakarta Pusat</strong>; mohon dikonfirmasi sekali lagi.</li>
+<li><strong>Jumlah tenant.</strong> Angka <strong>13 tenant</strong>
+mengikuti informasi pengelola. Pastikan konsisten di seluruh dokumen dan
+saat UAT.</li>
+<li><strong>Referensi yang perlu diverifikasi.</strong> Nomor
+halaman/ISSN Akshaya et al. (2025) dan judul lengkap siaran pers Bank
+Indonesia (2025) perlu dicek. Detail Prasetya et al. (2024) sudah
+dilengkapi.</li>
+<li><strong>Minimal referensi.</strong> Template mensyaratkan minimal 5
+sumber ber-ISSN/ISBN; draf ini memuat lebih dari itu.</li>
+<li><strong>Fitur rekomendasi.</strong> Tidak lagi termasuk ruang
+lingkup Bab I; desainnya tetap tersedia di <code>docs/PRD.md</code> §16
+sebagai pengembangan lanjutan.</li>
+<li><strong>Bagian belum ditulis.</strong> Sistematika penulisan,
+abstrak, kata kunci, dan bab-bab selanjutnya (Kajian Pustaka,
+Metodologi, Simpulan) belum termasuk di sini.</li>
+<li><strong>Arah bagi hasil.</strong> Teks memakai asumsi <strong>80%
+untuk tenant dan 20% untuk pengelola</strong>; konfirmasi arah pembagian
+sebelum dikunci.</li>
+<li><strong>Section 1.2 Alternatif Solusi.</strong> TOC
+<code>Metopen Afif.docx</code> menyebutkannya, tetapi body dokumen tidak
+memuatnya. Belum ditambahkan agar struktur yang sudah disetujui tidak
+berubah; tambahkan bila ditagih pembimbing.</li>
+</ol>
+</body>
+</html>
